@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Dashboard | KnoaLabs Admin</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<link rel="stylesheet" href="/admin/assets/links.css">
+</head>
+<body class="dash-page">
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span><em>Admin</em></div>
+    <nav class="tabs" aria-label="Admin sections">
+      <a href="/admin" class="on" aria-current="page">Leads</a>
+      <a href="/admin/analytics">Live analytics</a>
+    </nav>
+    <div class="who">
+      <span id="who" class="who-name"></span>
+      <button class="btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<main class="dash">
+  <div class="page-head">
+    <div>
+      <h1>Registrations</h1>
+      <p class="sub">Master class leads received through the registration page.</p>
+    </div>
+    <button class="btn btn-sm" id="exportBtn" type="button"><span class="label">Export to Excel</span><span class="orb"><span class="spin"></span><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg></span></button>
+  </div>
+
+  <div class="form-error notice" id="dashError" role="alert" hidden><span id="dashErrorText"></span><button class="btn-ghost dark" id="retry" type="button">Try again</button></div>
+
+  <section id="linksMount" aria-label="Master class links"></section>
+
+  <section class="stats" aria-label="Lead counts">
+    <div class="stat"><span class="stat-label">Total leads</span><b class="stat-num" data-stat="total">–</b></div>
+    <div class="stat"><span class="stat-label">Today</span><b class="stat-num" data-stat="today">–</b></div>
+    <div class="stat"><span class="stat-label">Last 7 days</span><b class="stat-num" data-stat="last7">–</b></div>
+    <div class="stat"><span class="stat-label">Last 30 days</span><b class="stat-num" data-stat="last30">–</b></div>
+  </section>
+
+  <section class="insights">
+    <div class="panel-card"><h2>I am a</h2><div class="rank" id="byStatus"></div></div>
+    <div class="panel-card"><h2>By master class</h2><div class="rank" id="byCourse"></div></div>
+  </section>
+
+  <section class="panel-card leads">
+    <form class="filters" id="filters" novalidate>
+      <input class="control sm" id="q" type="search" placeholder="Search name, mobile, email, college, company" autocomplete="off" aria-label="Search">
+      <select class="control sm" id="fStatus" aria-label="I am a"><option value="">All (I am a)</option></select>
+      <select class="control sm" id="fCourse" aria-label="Master class"><option value="">All master classes</option></select>
+      <label class="date"><span>From</span><input class="control sm" id="fFrom" type="date"></label>
+      <label class="date"><span>To</span><input class="control sm" id="fTo" type="date"></label>
+      <button class="btn-ghost dark" id="clear" type="button">Clear</button>
+    </form>
+
+    <div class="table-wrap">
+      <table class="tbl cards">
+        <thead><tr><th class="no" scope="col">No.</th><th>Registered</th><th>Name</th><th>Mobile</th><th>Email</th><th>I am a</th><th>Details</th><th>Master class</th><th>Source</th><th class="act">Delete</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden>No registrations match.</div>
+    </div>
+
+    <div class="pager">
+      <span id="range" class="muted"></span>
+      <div class="pager-ctl">
+        <select class="control sm" id="pageSize" aria-label="Rows per page"><option>10</option><option selected>25</option><option>50</option><option>100</option></select>
+        <button class="btn-ghost dark" id="prev" type="button">Previous</button>
+        <span id="pageNo" class="muted"></span>
+        <button class="btn-ghost dark" id="next" type="button">Next</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/admin/assets/links.js"></script>
+<script src="/admin/assets/dashboard.js"></script>
+</body>
+</html>

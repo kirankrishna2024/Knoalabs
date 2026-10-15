@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin sign in | KnoaLabs</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="login-page bg-brand">
+<header class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span></header>
+
+<main>
+  <section class="login-card" aria-labelledby="t">
+    <h1>Admin sign in</h1>
+    <p class="sub">Sign in to view registrations and export them to Excel.</p>
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="u">Admin ID</label>
+        <input class="control" id="u" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="100" placeholder="Enter your admin ID" required>
+      </div>
+      <div class="field">
+        <label for="p">Password</label>
+        <div class="pw">
+          <input class="control" id="p" name="password" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your password" required>
+          <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <div class="form-error" id="loginError" role="alert" hidden></div>
+      <button class="btn" type="submit" id="loginBtn"><span class="label">Sign in</span><span class="orb"><span class="spin"></span><svg viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></span></button>
+    </form>
+  </section>
+</main>
+
+<footer class="brand-foot">© KnoaLabs</footer>
+<script src="/admin/assets/login.js"></script>
+</body>
+</html>

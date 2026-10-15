@@ -1,0 +1,31 @@
+{
+  "name": "knoalabs-masterclass",
+  "version": "3.3.0",
+  "description": "KnoaLabs master class registration (Express + PostgreSQL) with a login-protected admin panel, course-link manager and live ad analytics",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js status",
+    "admin:set": "node scripts/admin.js",
+    "test": "node test/validate.test.js && node test/analytics.test.js && node test/db.test.js && node test/migrate.test.js && node test/leads.test.js && node test/admin.test.js && node test/production.test.js && node test/ui.test.js",
+    "stop": "node scripts/stop.js",
+    "db:check": "node scripts/dbcheck.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "helmet": "^7.2.0",
+    "pg": "^8.12.0",
+    "pino": "^9.14.0",
+    "pino-http": "^10.5.0"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.5"
+  }
+}

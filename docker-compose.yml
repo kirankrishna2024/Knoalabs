@@ -1,0 +1,13 @@
+# Local PostgreSQL only:  docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: knoa
+      POSTGRES_PASSWORD: knoa
+      POSTGRES_DB: knoalabs
+    ports: ["5432:5432"]
+    volumes: [knoa_pg:/var/lib/postgresql/data]
+volumes:
+  knoa_pg:

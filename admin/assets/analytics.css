@@ -1,0 +1,83 @@
+/* Live analytics: same white + green look as the Leads page (tokens come from public/ui.css). Layout classes live in admin.css. */
+.eyebrow{margin:0 0 4px;font-size:.72rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--green-deep)}
+.glow-text{color:var(--green-deep)}
+
+/* cards */
+.fx-card{position:relative;background:#fff;border:1px solid var(--card-line);border-radius:18px;padding:18px 20px;margin-bottom:14px;min-width:0}
+.fx-card h2{margin:0 0 4px;font-size:.95rem;font-weight:700;color:var(--text)}
+.fx-card h2.gap{margin-top:20px}
+.fx-card .small-note{margin:0 0 12px}
+.grid2>.fx-card,.grid3>.fx-card{margin-bottom:0}
+.grid2.flip{grid-template-columns:1.6fr 1fr}
+
+.filterbar{align-items:flex-end}
+.filterbar #spend{width:170px}
+.toggles{display:inline-flex;gap:6px;flex-wrap:wrap}
+.tog{appearance:none;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:8px 13px;font:700 .8rem/1 var(--font);cursor:pointer;transition:all .2s}
+.tog:hover{color:var(--text);border-color:var(--ink)}
+.tog.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.tog:focus-visible{outline:3px solid rgba(1,194,137,.55);outline-offset:2px}
+.chart-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* signals */
+.signals{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.signals:empty{display:none}
+.signal{display:flex;align-items:flex-start;gap:10px;flex:1 1 260px;min-width:0;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid var(--card-line);font-size:.86rem;line-height:1.4;color:var(--text)}
+.signal i{flex:none;width:9px;height:9px;margin-top:.4em;border-radius:50%;background:var(--sg,var(--green))}
+.signal.warn{border-color:#f0d9a8;background:#fffaf0}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.kpi{min-width:0;padding:16px 16px 14px;border-radius:18px;background:#fff;border:1px solid var(--card-line);border-top:3px solid var(--ink)}
+.kpi.hero{grid-column:span 2;border-top-color:var(--green)}
+.kpi .stat-label{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.kpi .stat-num{color:var(--text);font-size:clamp(1.7rem,3.4vw,2.3rem);font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi.hero .stat-num{font-size:clamp(2.2rem,4.5vw,3.1rem)}
+.spark{display:block;width:100%;height:34px;margin-top:8px;overflow:visible}
+
+/* donuts */
+.donut-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.donut-row.stack{flex-direction:column;align-items:stretch;gap:12px}
+.donut{width:150px;height:150px;flex:none;align-self:center;overflow:visible}
+.donut .seg-arc{fill:none;stroke-width:15;transition:stroke-dasharray .5s}
+.donut .ring{fill:none;stroke:var(--soft);stroke-width:15}
+.donut text{fill:var(--text);font:800 22px var(--font);text-anchor:middle}
+.donut text.sm{fill:var(--muted);font:600 9px var(--font);letter-spacing:.1em;text-transform:uppercase}
+.dlegend{list-style:none;margin:0;padding:0;display:grid;gap:8px;flex:1 1 150px;min-width:0}
+.dlegend li{display:flex;align-items:center;gap:9px;font-size:.86rem;font-weight:600;min-width:0}
+.dlegend li span.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlegend li b{font-variant-numeric:tabular-nums}
+.dlegend li em{font-style:normal;color:var(--muted);font-size:.78rem;min-width:3.2em;text-align:right}
+
+/* tables */
+#adTable,#dayTable{min-width:760px}
+#matrix{min-width:320px}
+.fxtbl td.nm{font-weight:700;white-space:nowrap}
+.fxtbl .cellbar{position:relative;display:flex;align-items:center;gap:10px;min-width:110px}
+.fxtbl .cellbar i{display:block;height:7px;border-radius:99px;background:var(--ink);min-width:3px}
+.fxtbl .cellbar b{font-variant-numeric:tabular-nums}
+.fxtbl .up{color:#058a62;font-weight:700}.fxtbl .down{color:var(--bad);font-weight:700}.fxtbl .flat{color:var(--muted)}
+.fxtbl td.zero{color:#b4bcc0}
+.fxtbl .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.76rem;font-weight:700;background:var(--soft);border:1px solid var(--card-line)}
+.table-wrap.tall{max-height:460px;overflow:auto}
+.table-wrap.tall .tbl th{top:0;z-index:1}
+
+/* heatmap */
+.heat-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.heat{display:grid;grid-template-columns:38px repeat(24,minmax(16px,1fr));gap:3px;min-width:560px}
+.heat .hl{font-size:.68rem;font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.heat .hh{font-size:.62rem;color:var(--muted);text-align:center;height:14px}
+.heat .hc{aspect-ratio:1;border-radius:5px;background:var(--soft);transition:transform .15s}
+.heat .hc:hover{transform:scale(1.35);position:relative;z-index:2;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.heat .hc.top{outline:2px solid var(--ink);outline-offset:-1px}
+.heat-scale{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.72rem;color:var(--muted)}
+.heat-scale i{display:block;width:120px;height:8px;border-radius:99px;background:linear-gradient(90deg,#d9f5ea,#01c289,#065f4e)}
+.slots{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+.slots li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--card-line);font-weight:700;font-size:.9rem}
+.slots li::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:.78rem;font-weight:800;flex:none}
+.slots li span{flex:1}.slots li em{font-style:normal;color:var(--muted);font-weight:600;font-size:.8rem}
+.slots .none{display:block;border:0;background:none;padding:0;color:var(--muted);font-weight:500}
+.slots .none::before{display:none}
+
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi.hero{grid-column:span 3}.grid2.flip{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:720px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi.hero{grid-column:span 2}.filterbar #spend{width:100%}.chart-tools{width:100%}.donut{width:130px;height:130px}}

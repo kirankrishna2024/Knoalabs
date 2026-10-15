@@ -229,4 +229,5 @@ if (require.main === module) {
   start().catch((e) => { log.fatal({ err: e.message }, 'startup failed'); process.exit(1); });
 }
 
-module.exports = { createApp, start, seedAdmin };
+// The default export must be a function or an Express server
+module.exports = createApp();

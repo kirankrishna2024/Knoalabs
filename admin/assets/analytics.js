@@ -20,7 +20,8 @@
   window.KnoaColors = colorFor;                                   // the course-link cards use the same colours as the lines
 
   const state = { status: '', course: '', days: '14', from: '', to: '', mode: 'daily', showTotal: true, showAvg: false, showPrev: false,
-    hidden: new Set(), shown: new Set(), hiddenCh: new Set(), paused: false, seq: 0, lastOk: 0, failures: 0, sig: '', data: null, built: false };
+    hidden: new Set(), shown: new Set(), hiddenCh: new Set(), paused: false, seq: 0, lastOk: 0, failures: 0, sig: '', data: null, built: false,
+    campaign: '', cohort: '', source: '', resCampaign: '', resCohort: '', resSource: '' };
   let timer = null, ctrl = null, prevKpi = {};
 
   /* ---------- tiny helpers ---------- */
@@ -50,12 +51,18 @@
     if (PRESETS.indexOf(q.get('days')) >= 0) state.days = q.get('days');
     if (/^\d{4}-\d{2}-\d{2}$/.test(q.get('from') || '')) state.from = q.get('from');
     if (/^\d{4}-\d{2}-\d{2}$/.test(q.get('to') || '')) state.to = q.get('to');
+    if (q.get('campaign')) state.campaign = q.get('campaign');
+    if (q.get('cohort')) state.cohort = q.get('cohort');
+    if (q.get('source')) state.source = q.get('source');
     if (q.get('mode') === 'cumulative') state.mode = 'cumulative';
   }
   function apiQuery() {
     const p = new URLSearchParams();
     if (state.status) p.set('status', state.status);
     if (state.course) p.set('course', state.course);
+    if (state.campaign) p.set('campaign', state.campaign);
+    if (state.cohort) p.set('cohort', state.cohort);
+    if (state.source) p.set('source', state.source);
     if (state.from || state.to) { if (state.from) p.set('from', state.from); if (state.to) p.set('to', state.to); } else p.set('days', state.days);
     return p;
   }
@@ -350,6 +357,126 @@
     if (mob && mob.share >= 60) host.appendChild(signal('#01a876', [mob.share + '%', ' register on a phone: keep creatives and the form phone-first.']));
   }
 
+  /* ---------- result panel ---------- */
+  const resSeriesKey = (d) => d && d.campaignSeries ? 'c:' + d.campaigns.map((c) => c.name).join(',') + '|' + d.campaigns.map((c) => c.share).join(',') : '';
+  let resSeriesCache = null;
+  function resSeriesKeyFn(d) { return resSeriesKey(d); }
+  function renderResultPanel(d) {
+    if (!d) return;
+    const $resSignals = $('resSignals'), $resLivePill = $('resLivePill'), $resLiveText = $('resLiveText');
+    $resLivePill.setAttribute('data-state', d.totals.window ? 'live' : 'connecting');
+    $resLiveText.textContent = d.totals.window ? 'Live · ' + num(d.totals.window) + ' registrations' : 'No data yet';
+    const host = $resSignals; host.textContent = '';
+    if (d.totals.window) {
+      const t = d.totals;
+      if (t.deltaPct != null) host.appendChild(signal(t.deltaPct >= 0 ? '#01a876' : '#d64545', ['Registrations are ', (t.deltaPct >= 0 ? 'up ' : 'down ') + Math.abs(t.deltaPct) + '%', ' vs last ' + d.window.days + ' days (' + num(t.window) + ' vs ' + num(t.previous) + ').']));
+      const camp = d.campaigns.find((c) => c.name !== '(no campaign)');
+      if (camp) host.appendChild(signal('#0d1211', ['Top campaign: ', camp.name, ' · ' + num(camp.n) + ' registrations.']));
+      const best = d.campaigns.slice().sort((a, b) => (b.n || 0) - (a.n || 0))[0];
+      if (best && (best.n || 0) > 0) host.appendChild(signal(colorFor(best.name === '(no campaign)' ? 'Direct' : best.name), ['Best campaign: ', best.name, ' with ' + num(best.n) + ' registrations.']));
+      const direct = d.channels.find((c) => c.name === 'Direct / no tag');
+      if (direct && direct.share >= 50) host.appendChild(signal('#d9962b', [direct.share + '%', ' of registrations carry no ad tag, so they cannot be matched to an ad. Use the ', 'Ad link builder', ' for every ad.'], true));
+      const flat = []; d.heatmap.forEach((row, di) => row.forEach((v, h) => { if (v > 0) flat.push({ di: di, h: h, v: v }); })); flat.sort((a, b) => b.v - a.v);
+      if (flat[0]) host.appendChild(signal('#065f4e', ['Busiest slot: ', DAYS_LONG[flat[0].di] + ' ' + hour12(flat[0].h) + ' – ' + hour12((flat[0].h + 1) % 24), ' (' + flat[0].v + '). Schedule ads just before it.']));
+      const mob = d.devices.find((x) => x.name === 'Mobile');
+      if (mob && mob.share >= 60) host.appendChild(signal('#01a876', [mob.share + '%', ' register on a phone: keep creatives and the form phone-first.']));
+    } else {
+      host.appendChild(signal('#d9962b', ['No registrations in this period. Share a master class link from the panel above, or widen the period.'], true));
+    }
+    $('resDayNote').textContent = 'Last ' + d.window.days + ' days · ' + d.window.labels[d.window.labels.length - 1];
+
+    /* chart */
+    const $resChart = $('resChart'), $resLegend = $('resLegend'), $resTip = $('resTip');
+    const cum = state.mode === 'cumulative', partialLast = !d.window.custom;
+    const all = mk(d.campaignSeries || [], (s) => s.key, (s) => s.name, (s) => colorFor(s.key), true);
+    legend($resLegend, all);
+    const vis = all.filter((s) => !isOff(s));
+    const dailyTotal = d.labels.map((_, i) => sum(d.campaignSeries.filter((s) => !isOff({ key: s.key, total: s.total, autoOff: true })).map((s) => s.data[i])));
+    const lines = vis.slice();
+    if (state.showTotal && vis.length > 1) lines.unshift({ key: '_t', name: 'Total', color: '#e8f0ff', aux: true, data: cum ? cumulative(dailyTotal) : dailyTotal });
+    if (state.showAvg && !cum) lines.push({ key: '_a', name: '7-day average', color: '#d9962b', aux: true, data: dailyTotal.map((_, i) => { const a = dailyTotal.slice(Math.max(0, i - 6), i + 1); return Math.round((sum(a) / a.length) * 100) / 100; }) });
+    if (state.showPrev) lines.push({ key: '_p', name: 'Previous period (all)', color: '#94a3b8', aux: true, dashed: true, data: cum ? cumulative(d.previousOverall) : d.previousOverall });
+    chartCourse.draw({ labels: d.labels, series: lines, cumulative: cum, title: 'Registrations by campaign', partialLast: partialLast });
+    $('resChart').hidden = d.totals.window === 0;
+
+    /* campaign breakdown */
+    const $resCampaignBreakdown = $('resCampaignBreakdown');
+    rank($resCampaignBreakdown, d.campaigns || [], (c) => c.name || '(no campaign)', 'No campaign data in this period');
+
+    /* medium breakdown */
+    rank($('resMediumBreakdown'), d.mediums || [], (m) => m.name || '(none)', 'No medium data in this period');
+
+    /* device donut */
+    const $resDeviceDonut = $('resDeviceDonut'), $resDeviceLegend = $('resDeviceLegend');
+    donut($resDeviceDonut, $resDeviceLegend, d.devices || [], 'leads');
+
+    /* country */
+    rank($('resCountryBreakdown'), d.countries || [], (c) => c.name || 'Other', 'No country data in this period');
+
+    /* per-campaign table */
+    const $resCampaignTable = $('resCampaignTable');
+    $('resEmptyAd').hidden = false;
+    if (d.campaigns && d.campaigns.length) {
+      $('resEmptyAd').hidden = true;
+      head($resCampaignTable, [{ t: 'Campaign' }, { t: 'Source' }, { t: 'Medium' }, { t: 'Spend' }, { t: 'Registrations' }, { t: 'Share', r: 1 }, { t: 'Students', r: 1 }, { t: 'Professionals', r: 1 }, { t: 'Last', r: 1 }]);
+      const max = Math.max.apply(null, d.campaigns.map((c) => c.n || 0)) || 1;
+      d.campaigns.forEach((c) => {
+        const tr = el('tr');
+        tr.appendChild(el('td', 'nm', c.name || '(no campaign)'));
+        tr.appendChild(el('td', 'muted', c.channel || ''));
+        const m = el('td'); m.appendChild(el('span', 'pill', c.medium || '(none)')); tr.appendChild(m);
+        tr.appendChild(el('td', 'r', c.spend ? '₹' + num(c.spend) : '–'));
+        tr.appendChild(cellBar(c.n || 0, max));
+        tr.appendChild(el('td', 'r', c.share != null ? c.share + '%' : '–'));
+        tr.appendChild(el('td', 'r' + (c.students ? '' : ' zero'), num(c.students || 0))); tr.appendChild(el('td', 'r' + (c.professionals ? '' : ' zero'), num(c.professionals || 0)));
+        const l = el('td', 'nowrap muted', c.lastLeadAt ? ago(c.lastLeadAt) : '–'); l.setAttribute('data-t', c.lastLeadAt || ''); tr.appendChild(l);
+        $resCampaignTable.tBodies[0].appendChild(tr);
+      });
+    }
+
+    /* top courses */
+    rank($('resTopCourse'), d.byCourse || [], (c) => c.course || 'No course in link', 'No course data in this period');
+    rank($('resTopStudentBranch'), d.students && d.students.courses ? d.students.courses : [], (c) => c.name || 'No course', 'No student course data in this period');
+    rank($('resTopProRole'), d.professionals && d.professionals.roles ? d.professionals.roles : [], (c) => c.name || 'No role', 'No professional role data in this period');
+
+    /* day table */
+    const $resDayTable = $('resDayTable');
+    if (d.labels && d.overall) {
+      $('resEmptyAd').hidden = true;
+      head($resDayTable, [{ t: 'Date' }, { t: 'Total' }].concat(d.series.filter((s) => s.total > 0).map((s) => ({ t: s.name || s.key, r: 1 })), [{ t: 'Students', r: 1 }, { t: 'Professionals', r: 1 }, { t: '7-day avg', r: 1 }, { t: 'vs day before', r: 1 }]));
+      const max = Math.max.apply(null, d.overall) || 1;
+      for (let i = d.labels.length - 1; i >= 0; i--) {
+        const tr = el('tr'), v = d.overall[i], a = d.overall.slice(Math.max(0, i - 6), i + 1);
+        tr.appendChild(el('td', 'nm nowrap', long(d.labels[i]) + (i === d.labels.length - 1 && !d.window.custom ? ' · today' : '')));
+        tr.appendChild(cellBar(v, max));
+        d.series.filter((s) => s.total > 0).forEach((s) => tr.appendChild(el('td', 'r' + (s.data[i] ? '' : ' zero'), num(s.data[i]))));
+        tr.appendChild(el('td', 'r' + (d.students && d.students.courses.length ? (d.students.courses[0].data[i] || 0) : '') , num(0)));
+        const proData = d.professionals && d.professionals.roles && d.professionals.roles.length ? (d.professionals.roles[0].data || []) : [];
+        tr.appendChild(el('td', 'r' + (proData.length ? '' : ' zero'), num(proData[i] || 0)));
+        tr.appendChild(el('td', 'r', (Math.round((sum(a) / a.length) * 10) / 10).toString()));
+        let txt = '–', cls = 'r flat';
+        if (i > 0) { const diff = v - d.overall[i - 1]; txt = diff > 0 ? '▲ ' + diff : diff < 0 ? '▼ ' + Math.abs(diff) : '= 0'; cls = 'r ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'); }
+        tr.appendChild(el('td', cls, txt));
+        $resDayTable.tBodies[0].appendChild(tr);
+      }
+    }
+
+    /* ad table */
+    renderAdTable(d);
+
+    /* heatmap */
+    renderHeat(d.heatmap || []);
+
+    /* slots */
+    const flat = []; (d.heatmap || []).forEach((row, di) => row.forEach((v, h) => { if (v > 0) flat.push({ di: di, h: h, v: v }); }));
+    flat.sort((a, b) => b.v - a.v || a.di - b.di || a.h - b.h);
+    const slots = $('resSlots'); slots.textContent = '';
+    if (!flat.length) slots.appendChild(el('li', 'none', 'No registrations in this period yet.'));
+    flat.slice(0, 3).forEach((c) => { const li = el('li'); li.appendChild(el('span', null, DAYS_LONG[c.di] + ', ' + hour12(c.h) + ' – ' + hour12((c.h + 1) % 24))); li.appendChild(el('em', null, c.v + (c.v === 1 ? ' registration' : ' registrations'))); slots.appendChild(li); });
+    rank($('resWeekdays'), (d.heatmap || []).map((row, di) => ({ name: DAYS_LONG[di], n: sum(row) })).sort((a, b) => b.n - a.n), (r) => r.name);
+  }
+
+  /* ---------- KPIs ---------- */
   function setKpi(key, text) {
     const c = document.querySelector('[data-stat="' + key + '"]'); if (!c) return;
     if (c.textContent !== text) { c.textContent = text; if (prevKpi[key] !== undefined) { c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); } }
@@ -392,13 +519,30 @@
       if (c.slug) { const sw = el('i', 'sw'); sw.style.background = colorFor(c.slug); b.insertBefore(sw, b.firstChild); }
       b.addEventListener('click', () => { state.course = c.slug; changed(); }); chips.appendChild(b);
     });
+    const campHost = $('chipCampaign'); campHost.textContent = '';
+    [{ name: '', label: 'All campaigns' }].concat((d.campaigns || []).map((c) => ({ name: c.name || '(no campaign)', label: c.name || '(no campaign)' }))).forEach((c) => {
+      const b = el('button', 'chip', c.label); b.type = 'button'; b.setAttribute('data-v', c.name);
+      b.addEventListener('click', () => { state.campaign = c.name; changed(); }); campHost.appendChild(b);
+    });
+    const cohHost = $('chipCohort'); cohHost.textContent = '';
+    [{ name: '', label: 'All cohorts' }].concat((d.cohorts || []).map((c) => ({ name: c, label: c }))).forEach((c) => {
+      const b = el('button', 'chip', c.label); b.type = 'button'; b.setAttribute('data-v', c.name);
+      b.addEventListener('click', () => { state.cohort = c.name; changed(); }); cohHost.appendChild(b);
+    });
+    const srcHost = $('chipSource'); srcHost.textContent = '';
+    [{ name: '', label: 'All sources' }].concat((d.sources || []).map((c) => ({ name: c, label: c }))).forEach((c) => {
+      const b = el('button', 'chip', c.label); b.type = 'button'; b.setAttribute('data-v', c.name);
+      b.addEventListener('click', () => { state.source = c.name; changed(); }); srcHost.appendChild(b);
+    });
     state.built = true;
   }
   function syncControls() {
     document.querySelectorAll('#segStatus button').forEach((b) => { const on = b.getAttribute('data-v') === state.status; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     document.querySelectorAll('#chipCourse button').forEach((b) => { const on = b.getAttribute('data-v') === state.course; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('#chipCampaign button').forEach((b) => { const on = b.getAttribute('data-v') === state.campaign; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('#chipCohort button').forEach((b) => { const on = b.getAttribute('data-v') === state.cohort; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('#chipSource button').forEach((b) => { const on = b.getAttribute('data-v') === state.source; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     document.querySelectorAll('#segMode button').forEach((b) => { const on = b.getAttribute('data-mode') === state.mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
-    [['togTotal', 'showTotal'], ['togAvg', 'showAvg'], ['togPrev', 'showPrev']].forEach((p) => { $(p[0]).classList.toggle('on', state[p[1]]); $(p[0]).setAttribute('aria-pressed', String(state[p[1]])); });
     const custom = Boolean(state.from || state.to), sel = $('winDays');
     sel.querySelector('[value="custom"]').hidden = !custom; sel.value = custom ? 'custom' : state.days;
     $('fFrom').value = state.from; $('fTo').value = state.to;
@@ -446,6 +590,10 @@
       if (my !== state.seq) return;                        // a newer request (filters changed) owns the screen now
       if (!res.ok || !d.ok) throw new Error(d.error || 'Request failed');
       state.failures = 0; state.lastOk = Date.now(); render(d); paintLive();
+      renderResultPanel(d);
+      if (state.resCampaign) document.querySelector('#chipCampaign [data-v="' + state.resCampaign + '"]')?.click();
+      if (state.resCohort) document.querySelector('#chipCohort [data-v="' + state.resCohort + '"]')?.click();
+      if (state.resSource) document.querySelector('#chipSource [data-v="' + state.resSource + '"]')?.click();
     } catch (e) {
       if (my !== state.seq) return;
       state.failures++; paintLive();
@@ -466,7 +614,7 @@
   [['togTotal', 'showTotal'], ['togAvg', 'showAvg'], ['togPrev', 'showPrev']].forEach((p) => $(p[0]).addEventListener('click', () => { state[p[1]] = !state[p[1]]; syncControls(); renderCharts(); }));
   $('pauseBtn').addEventListener('click', () => { state.paused = !state.paused; $('pauseBtn').textContent = state.paused ? 'Resume' : 'Pause'; paintLive(); if (!state.paused) refresh(); else { clearTimeout(timer); if (ctrl) ctrl.abort(); state.seq++; } });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !state.paused) refresh(); });
-  document.addEventListener('knoa:courses-changed', () => { state.built = false; state.sig = ''; refresh(); });     // a master class was added / deleted
+  document.addEventListener('knoa:courses-changed', () => { state.built = false; state.sig = ''; refresh(); });
   document.addEventListener('knoa:lead-deleted', () => { state.sig = ''; refresh(); });
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(renderCharts, 120); });
   $('logout').addEventListener('click', () => {

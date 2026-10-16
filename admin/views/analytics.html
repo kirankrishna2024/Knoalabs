@@ -76,6 +76,88 @@
     </div>
   </section>
 
+  <section class="fx-card filterbar" aria-label="Campaign and course filter">
+    <div class="fgroup">
+      <span class="flabel" id="lblCampaign">Campaign</span>
+      <div class="chips" id="chipCampaign" role="group" aria-labelledby="lblCampaign"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel" id="lblCohort">Cohort</span>
+      <div class="chips" id="chipCohort" role="group" aria-labelledby="lblCohort"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">Source</span>
+      <div class="chips" id="chipSource" role="group" aria-labelledby="lblSource"></div>
+    </div>
+  </section>
+
+  <section class="fx-card" aria-label="Results">
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">Results</p>
+        <h2 id="resTitle">Campaign-wise results</h2>
+        <p class="sub" id="resSub">Select a campaign chip to see that campaign's dashboard.</p>
+      </div>
+      <div class="live-controls">
+        <span class="live-pill" id="resLivePill" data-state="connecting" role="status" aria-live="polite"><i class="live-dot" aria-hidden="true"></i><span id="resLiveText">Connecting…</span></span>
+      </div>
+    </div>
+    <div class="signals" id="resSignals" aria-label="Results signals"></div>
+    <section class="grid2">
+      <div class="fx-card chart-card">
+        <div class="chart-head"><div><h2>Registrations by day</h2><p class="muted small-note" id="resDayNote"></p></div></div>
+        <div class="legend" id="resLegend"></div>
+        <div class="chart-wrap short" id="resChart"><svg class="chart" id="resChartSvg" role="img"></svg><div class="tip" id="resTip" hidden></div></div>
+      </div>
+      <div class="fx-card">
+        <h2>Campaign breakdown</h2>
+        <p class="muted small-note">Amount spent and registrations per campaign in this period.</p>
+        <div class="rank" id="resCampaignBreakdown"></div>
+        <div class="rank gap"><h2>Medium</h2><div class="rank" id="resMediumBreakdown"></div></div>
+        <div class="rank gap"><h2>Device</h2><div class="donut-row stack"><svg class="donut" id="resDeviceDonut" viewBox="0 0 140 140" role="img" aria-label="Share of registrations by device"></svg><ul class="dlegend" id="resDeviceLegend"></ul></div></div>
+        <div class="rank gap"><h2>Country</h2><div class="rank" id="resCountryBreakdown"></div></div>
+      </div>
+    </section>
+    <section class="grid2 flip">
+      <div class="fx-card">
+        <h2>Per-campaign totals</h2>
+        <div class="table-wrap tall"><table class="tbl mini fxtbl" id="resCampaignTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="fx-card">
+        <h2>Top courses</h2>
+        <div class="rank" id="resTopCourse"></div>
+        <div class="rank gap"><h2>Top student branch</h2><div class="rank" id="resTopStudentBranch"></div></div>
+        <div class="rank gap"><h2>Top professional role</h2><div class="rank" id="resTopProRole"></div></div>
+      </div>
+    </section>
+    <section class="grid2">
+      <div class="fx-card">
+        <h2>Day by day</h2>
+        <div class="table-wrap tall"><table class="tbl mini fxtbl" id="resDayTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="fx-card">
+        <h2>Ad performance</h2>
+        <div class="table-wrap"><table class="tbl mini fxtbl" id="resAdTable"><thead></thead><tbody></tbody></table></div>
+        <div class="empty" id="resEmptyAd" hidden>No registrations in this period yet.</div>
+      </div>
+    </section>
+    <section class="grid2 flip">
+      <div class="fx-card">
+        <h2>Best time to run ads</h2>
+        <p class="muted small-note" id="resHeatNote">Registrations by day of week and hour (India time)</p>
+        <div class="heat-scroll"><div class="heat" id="resHeat" role="img" aria-label="Heatmap of registrations by weekday and hour"></div></div>
+        <div class="heat-scale" aria-hidden="true"><span>Fewer</span><i></i><span>More</span></div>
+      </div>
+      <div class="fx-card">
+        <h2>Top slots</h2>
+        <p class="muted small-note">Schedule your ads when people register</p>
+        <ol class="slots" id="resSlots"></ol>
+        <h2 class="gap">By weekday</h2>
+        <div class="rank" id="resWeekdays"></div>
+      </div>
+    </section>
+  </section>
+
   <section class="signals" id="signals" aria-label="Signals from your data"></section>
 
   <section class="kpis" aria-label="Key numbers">

@@ -28,11 +28,16 @@ function connection() {
     url = u.toString();
   } catch { /* leave the URL as is; pg reports a clear error */ }
   const explicit = process.env.DATABASE_SSL;
+  // Explicit false always wins (user wants no TLS even for managed DBs)
+  if (explicit === '' || explicit === 'false' || explicit === '0' || explicit === 'no' || explicit === 'off') {
+    return { url, ssl: false };
+  }
   const forcedOff = explicit !== undefined && explicit !== '' && !config.databaseSsl;
   const wanted = !forcedOff && (config.databaseSsl || (mode && mode !== 'disable') || /\.db\.ondigitalocean\.com$/i.test(host));
   if (!wanted) return { url, ssl: false };
   if (config.databaseSslCa) return { url, ssl: { ca: config.databaseSslCa, rejectUnauthorized: true } };
-  log.warn('TLS is on without DATABASE_SSL_CA: the connection is encrypted but the server certificate is NOT verified. Paste the cluster CA certificate into DATABASE_SSL_CA to verify it.');
+  // No CA available: connection is encrypted (TLS) but the server cert is not verified.
+  // This is common with managed DBs that use a private CA not in Node's default trust store.
   return { url, ssl: { rejectUnauthorized: false } };
 }
 

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Form Studio | KnoaLabs Admin</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<link rel="stylesheet" href="/admin/assets/links.css">
+<link rel="stylesheet" href="/admin/assets/studio.css">
+</head>
+<body class="dash-page">
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span><em>Admin</em></div>
+    <nav class="tabs" aria-label="Admin sections">
+      <a href="/admin">Leads</a>
+      <a href="/admin/analytics">Live analytics</a>
+      <a href="/admin/forms" class="on" aria-current="page">Form Studio</a>
+      <a href="/admin/campaigns">Campaigns</a>
+      <a href="/admin/qr">QR generator</a>
+    </nav>
+    <div class="who">
+      <span id="who" class="who-name"></span>
+      <button class="btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+<main class="dash">
+  <div class="page-head"><div><h1>Form Studio</h1><p class="sub">One registration form per link. Edit it, see it live, publish it. Every publish is a saved version you can go back to.</p></div>
+    <button class="btn btn-sm" id="newForm" type="button"><span class="label">New form</span><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></div>
+  <div id="err" class="form-error" role="alert" hidden></div>
+  <div class="fs-tools">
+    <input class="control sm" id="formSearch" type="search" placeholder="Search forms by name or link" aria-label="Search forms" autocomplete="off">
+    <label class="fs-check"><input type="checkbox" id="showArchived"> Show archived</label>
+  </div>
+  <div id="formList" class="fs-grid" aria-live="polite"><p class="muted">Loading…</p></div>
+</main>
+<script src="/admin/assets/kit.js"></script>
+<script src="/admin/assets/forms.js"></script>
+</body>
+</html>

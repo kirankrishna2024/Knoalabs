@@ -1,0 +1,35 @@
+/* QR generator tab + QR dialog. Uses the shared tokens from public/ui.css. */
+.qr-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.qr-card{background:#fff;border:1px solid var(--card-line);border-radius:18px;padding:18px 20px;min-width:0}
+.qr-card h2{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:.95rem;font-weight:700}
+.qr-step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:.8rem;font-weight:800}
+.qr-pane{margin-top:14px}
+.qr-pane .lbuild-grid{padding:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+.qr-linkbox{display:grid;gap:8px;margin-top:16px;padding:14px;border:1px solid var(--card-line);border-radius:14px;background:var(--soft)}
+.qr-linkbox .lbuild-url{flex:none}
+.qr-linkrow{display:flex;gap:8px;flex-wrap:wrap}
+.qr-warn{margin:0;padding:10px 12px;border-radius:10px;background:#fffaf0;border:1px solid #f0d9a8;font-size:.82rem;line-height:1.4}
+.qr-out{position:sticky;top:12px}
+.qr-stage{display:grid;place-items:center;padding:14px;border-radius:14px;background:var(--soft);border:1px dashed var(--line)}
+.qr-canvas{display:block;width:100%;max-width:320px;height:auto;aspect-ratio:1;image-rendering:pixelated;background:#fff;border-radius:6px;box-shadow:0 6px 24px rgba(13,18,17,.12)}
+.qr-dim{text-align:center;margin:8px 0 12px}
+.qr-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.qr-check{display:flex;align-items:flex-start;gap:9px;margin-top:12px;font-size:.86rem;font-weight:600;cursor:pointer}
+.qr-check input{margin-top:2px;width:17px;height:17px;accent-color:var(--green)}
+.qr-check em{font-style:normal;font-weight:500;color:var(--muted)}
+.qr-dl{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.qr-dl .kbtn{flex:1 1 130px}
+.qr-dl .kbtn.primary{height:var(--h-sm);padding:0 16px}
+.qr-tip{margin:12px 0 0}
+.qrmodal{max-width:400px}
+.qrmodal .qr-canvas{margin:6px auto 12px;max-width:300px}
+.qrmodal .kmodal-row .kbtn.primary{padding:11px 18px;height:auto;background:#0d1211;color:#fff;border-color:#0d1211}
+.qrmodal .kmodal-row a.kbtn{text-decoration:none;display:inline-flex;align-items:center}
+.qr-msg{margin:0 0 10px;color:var(--bad);font-size:.84rem;font-weight:600}
+.qr-msg:empty{display:none}
+@media(max-width:900px){.qr-layout{grid-template-columns:minmax(0,1fr)}.qr-out{position:static}}
+@media(max-width:520px){.qr-pane .lbuild-grid,.qr-opts{grid-template-columns:minmax(0,1fr)}}
+
+/* link box + QR controls stay hidden until the link is complete */
+.qr-linkbox[hidden],#qrBody[hidden],.qr-wait[hidden]{display:none}
+.qr-wait{margin:0;padding:22px 16px;border:1px dashed var(--line);border-radius:14px;background:var(--soft);text-align:center;font-size:.9rem;font-weight:600;color:var(--muted);line-height:1.5}

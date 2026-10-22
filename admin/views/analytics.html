@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Live Analytics | KnoaLabs Admin</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<link rel="stylesheet" href="/admin/assets/links.css">
+<link rel="stylesheet" href="/admin/assets/analytics.css">
+</head>
+<body class="dash-page">
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span><em>Admin</em></div>
+    <nav class="tabs" aria-label="Admin sections">
+      <a href="/admin">Leads</a>
+      <a href="/admin/analytics" class="on" aria-current="page">Live analytics</a>
+      <a href="/admin/forms">Form Studio</a>
+      <a href="/admin/campaigns">Campaigns</a>
+      <a href="/admin/qr">QR generator</a>
+    </nav>
+    <div class="who">
+      <span id="who" class="who-name"></span>
+      <button class="btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<main class="dash fxmain" id="main">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Ad intelligence</p>
+      <h1>Ad <span class="glow-text">analytics</span></h1>
+      <p class="sub">Which ads, channels, days and hours bring registrations. Updates every second.</p>
+    </div>
+    <div class="live-controls">
+      <span class="live-pill" id="livePill" data-state="connecting" role="status" aria-live="polite"><i class="live-dot" aria-hidden="true"></i><span id="liveText">Connecting…</span></span>
+      <button class="btn-ghost dark" id="pauseBtn" type="button">Pause</button>
+    </div>
+  </div>
+
+  <section class="fx-card linkfind" aria-labelledby="lblFind">
+    <div class="lf-head">
+      <div><h2 id="lblFind">Find a link</h2><p class="muted small-note">Paste any registration or ad link (or type a campaign, channel or master class). The master class, campaign, channel and medium below are selected for you, and the whole page shows the numbers for that link, live.</p></div>
+    </div>
+    <div class="lf-row">
+      <input class="control sm" id="findInput" type="search" inputmode="url" maxlength="2000" placeholder="https://…/datascience?utm_source=meta&amp;utm_medium=paid&amp;utm_campaign=ds-oct-reels" autocomplete="off" spellcheck="false" aria-label="Paste a link to search">
+      <button class="kbtn primary" id="findBtn" type="button">Search</button>
+      <button class="kbtn" id="findClear" type="button" hidden>Clear</button>
+    </div>
+    <div class="lf-msg" id="findMsg" role="status" aria-live="polite"></div>
+    <div class="lf-suggest" id="findSuggest"></div>
+  </section>
+
+  <section class="fx-card filterbar" aria-label="Filters">
+    <div class="fgroup">
+      <span class="flabel" id="lblStatus">I am a</span>
+      <div class="seg" id="segStatus" role="group" aria-labelledby="lblStatus"></div>
+    </div>
+    <div class="fgroup grow">
+      <span class="flabel" id="lblCourse">Master class</span>
+      <div class="chips" id="chipCourse" role="group" aria-labelledby="lblCourse"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">Period</span>
+      <div class="period">
+        <select class="control sm" id="winDays" aria-label="Time window">
+          <option value="7">Last 7 days</option>
+          <option value="14" selected>Last 14 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="60">Last 60 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="custom" hidden>Custom range</option>
+        </select>
+        <input class="control sm" id="fFrom" type="date" aria-label="From date">
+        <input class="control sm" id="fTo" type="date" aria-label="To date">
+        <button class="btn-ghost dark" id="clear" type="button">Reset</button>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label class="flabel" for="spend">Ad spend this period (₹)</label>
+      <input class="control sm" id="spend" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 5000" autocomplete="off">
+    </div>
+    <div class="fgroup grow fwide" id="grpCampaign">
+      <span class="flabel" id="lblCampaign">Campaign</span>
+      <div class="chips" id="chipCampaign" role="group" aria-labelledby="lblCampaign"></div>
+    </div>
+    <div class="fgroup">
+      <label class="flabel" for="selChannel">Channel</label>
+      <select class="control sm" id="selChannel" aria-label="Ad channel"></select>
+    </div>
+    <div class="fgroup">
+      <label class="flabel" for="selMedium">Medium</label>
+      <select class="control sm" id="selMedium" aria-label="Ad medium"></select>
+    </div>
+    <div class="fgroup grow fwide">
+      <span class="flabel" id="lblCrumbs">Showing</span>
+      <div class="crumbs" id="crumbs" role="group" aria-labelledby="lblCrumbs"></div>
+    </div>
+  </section>
+
+  <section class="signals" id="signals" aria-label="Signals from your data"></section>
+
+  <section class="kpis" aria-label="Key numbers">
+    <div class="kpi hero"><span class="stat-label" id="kWinLabel">Registrations</span><b class="stat-num" data-stat="window">–</b><span class="delta" id="kDelta"></span><svg class="spark" id="spkWin" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+    <div class="kpi"><span class="stat-label">Link opens</span><b class="stat-num" data-stat="opens">–</b><span class="stat-note" id="kOpens">&nbsp;</span></div>
+    <div class="kpi"><span class="stat-label">Today</span><b class="stat-num" data-stat="today">–</b><span class="stat-note" id="kLast">&nbsp;</span></div>
+    <div class="kpi"><span class="stat-label">Average per day</span><b class="stat-num" data-stat="avgPerDay">–</b><span class="stat-note" id="kRange">&nbsp;</span></div>
+    <div class="kpi"><span class="stat-label">Best day</span><b class="stat-num" data-stat="peak">–</b><span class="stat-note" id="kPeak">&nbsp;</span></div>
+    <div class="kpi"><span class="stat-label">Cost per lead</span><b class="stat-num" data-stat="cpl">–</b><span class="stat-note" id="kCpl">Enter ad spend above</span></div>
+    <div class="kpi"><span class="stat-label">Email captured</span><b class="stat-num" data-stat="email">–</b><span class="stat-note" id="kAll">&nbsp;</span></div>
+  </section>
+
+  <section class="fx-card chart-card" aria-labelledby="hCourse">
+    <div class="chart-head">
+      <div><h2 id="hCourse">Registrations by master class</h2><p class="muted small-note" id="cSub"></p></div>
+      <div class="chart-tools">
+        <div class="toggles" role="group" aria-label="Chart overlays">
+          <button type="button" class="tog on" id="togTotal" aria-pressed="true">Total</button>
+          <button type="button" class="tog" id="togAvg" aria-pressed="false">7-day average</button>
+          <button type="button" class="tog" id="togPrev" aria-pressed="false">Previous period</button>
+        </div>
+        <div class="seg compact" id="segMode" role="group" aria-label="Chart mode">
+          <button type="button" class="on" data-mode="daily" aria-pressed="true">Per day</button>
+          <button type="button" data-mode="cumulative" aria-pressed="false">Running total</button>
+        </div>
+      </div>
+    </div>
+    <div class="legend" id="legendCourse" aria-label="Master classes (click to show or hide a line)"></div>
+    <div class="chart-wrap" id="wrapCourse"><svg class="chart" id="chartCourse" role="img"></svg><div class="tip" id="tipCourse" hidden></div><div class="empty over" id="emptyCourse" hidden>No registrations in this period for these filters.</div></div>
+  </section>
+
+  <section class="grid2 explorer" aria-labelledby="hTree">
+    <div class="fx-card">
+      <h2 id="hTree">Master class → campaigns</h2>
+      <p class="muted small-note">Every master class with the campaigns that brought its registrations. Click a master class or a campaign to filter the whole page.</p>
+      <div class="tree" id="tree"></div>
+      <div class="empty" id="emptyTree" hidden>No registrations in this period for these filters.</div>
+    </div>
+    <div class="fx-card chart-card">
+      <div class="chart-head"><div><h2 id="hCamp">Campaigns over time</h2><p class="muted small-note" id="campSub">Top campaigns per day</p></div></div>
+      <div class="legend" id="legendCampaign" aria-label="Campaigns (click to show or hide a line)"></div>
+      <div class="chart-wrap short" id="wrapCampaign"><svg class="chart" id="chartCampaign" role="img"></svg><div class="tip" id="tipCampaign" hidden></div><div class="empty over" id="emptyCampaign" hidden>No campaign data in this period.</div></div>
+    </div>
+  </section>
+
+  <section class="fx-card" aria-labelledby="hCampTable">
+    <div class="chart-head"><div><h2 id="hCampTable">Campaign performance</h2><p class="muted small-note" id="campTableNote">Every campaign in the current selection, ranked by registrations. Link opens = visits to the link (one per visitor per day); conversion = registrations / opens. Click a campaign name to focus on it.</p></div></div>
+    <div class="table-wrap"><table class="tbl mini fxtbl" id="campTable"><thead></thead><tbody></tbody></table></div>
+    <div class="empty" id="emptyCampTable" hidden>No registrations in this period yet.</div>
+  </section>
+
+  <section class="grid2">
+    <div class="fx-card chart-card">
+      <div class="chart-head"><div><h2>Ad channels over time</h2><p class="muted small-note">Where each registration came from, per day (UTM source, else referring site)</p></div></div>
+      <div class="legend" id="legendChannel"></div>
+      <div class="chart-wrap short" id="wrapChannel"><svg class="chart" id="chartChannel" role="img"></svg><div class="tip" id="tipChannel" hidden></div><div class="empty over" id="emptyChannel" hidden>No channel data yet.</div></div>
+    </div>
+    <div class="fx-card">
+      <h2>Channel share</h2>
+      <p class="muted small-note">Share of registrations in this period</p>
+      <div class="donut-row"><svg class="donut" id="donutChannel" viewBox="0 0 140 140" role="img" aria-label="Share of registrations by channel"></svg><ul class="dlegend" id="dlegChannel"></ul></div>
+    </div>
+  </section>
+
+  <section class="fx-card">
+    <div class="chart-head"><div><h2>Ad performance</h2><p class="muted small-note">Every channel · medium · campaign combination, ranked by registrations. Tag your ads with the Ad link builder above to see them here.</p></div></div>
+    <div class="table-wrap"><table class="tbl mini fxtbl" id="adTable"><thead></thead><tbody></tbody></table></div>
+    <div class="empty" id="emptyAd" hidden>No registrations in this period yet.</div>
+  </section>
+
+  <section class="fx-card" id="metaCard" aria-labelledby="hMeta">
+    <div class="chart-head"><div><h2 id="hMeta">Meta ads: Facebook vs Instagram</h2><p class="muted small-note" id="metaNote">Which app the people from your Meta ads came from, and where in it they saw the ad. Click an app to focus the whole page on it.</p></div></div>
+    <div class="table-wrap"><table class="tbl mini fxtbl" id="metaTable"><thead></thead><tbody></tbody></table></div>
+    <div class="rank" id="metaPlacements"></div>
+    <div class="empty" id="emptyMeta" hidden>No Meta ad traffic in this period yet. In Meta Ads Manager, add the URL parameters shown in the Ad link builder (choose <b>Meta</b>) so every click says Facebook or Instagram.</div>
+    <p class="muted small-note" id="metaHint" hidden></p>
+  </section>
+
+  <section class="grid2 flip">
+    <div class="fx-card">
+      <h2>Best time to run ads</h2>
+      <p class="muted small-note" id="heatNote">Registrations by day of week and hour (India time)</p>
+      <div class="heat-scroll"><div class="heat" id="heat" role="img" aria-label="Heatmap of registrations by weekday and hour"></div></div>
+      <div class="heat-scale" aria-hidden="true"><span>Fewer</span><i></i><span>More</span></div>
+    </div>
+    <div class="fx-card">
+      <h2>Top slots</h2>
+      <p class="muted small-note">Schedule your ads when people register</p>
+      <ol class="slots" id="slots"></ol>
+      <h2 class="gap">By weekday</h2>
+      <div class="rank" id="weekdays"></div>
+    </div>
+  </section>
+
+  <section class="grid3">
+    <div class="fx-card"><h2>Share by master class</h2><div class="donut-row stack"><svg class="donut" id="donutCourse" viewBox="0 0 140 140" role="img" aria-label="Share of registrations by master class"></svg><ul class="dlegend" id="dlegCourse"></ul></div></div>
+    <div class="fx-card"><h2>Campaigns</h2><div class="rank" id="campaigns"></div><h2 class="gap">Medium</h2><div class="rank" id="mediums"></div></div>
+    <div class="fx-card"><h2>Devices</h2><div class="donut-row stack"><svg class="donut" id="donutDevice" viewBox="0 0 140 140" role="img" aria-label="Share of registrations by device"></svg><ul class="dlegend" id="dlegDevice"></ul></div><h2 class="gap">Country code</h2><div class="rank" id="countries"></div></div>
+  </section>
+
+  <section class="grid2">
+    <div class="fx-card chart-card" aria-labelledby="hStatus">
+      <div class="chart-head"><div><h2 id="hStatus">"I am a" over time</h2><p class="muted small-note">Students / freshers vs working professionals</p></div></div>
+      <div class="legend" id="legendStatus"></div>
+      <div class="chart-wrap short" id="wrapStatus"><svg class="chart" id="chartStatus" role="img"></svg><div class="tip" id="tipStatus" hidden></div></div>
+    </div>
+    <div class="fx-card">
+      <h2>Master class × "I am a"</h2>
+      <p class="muted small-note">Who registered for what in this period</p>
+      <div class="table-wrap"><table class="tbl mini fxtbl" id="matrix"><thead></thead><tbody></tbody></table></div>
+      <div class="empty" id="emptyMatrix" hidden>Nothing to compare yet.</div>
+    </div>
+  </section>
+
+  <section class="fx-card">
+    <div class="chart-head"><div><h2>Day by day</h2><p class="muted small-note">Every day of the period, newest first</p></div></div>
+    <div class="table-wrap tall"><table class="tbl mini fxtbl" id="dayTable"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="grid2">
+    <div class="fx-card"><h2>Students: course, year &amp; branch</h2><div class="rank" id="stuCourse"></div><div class="rank gap" id="stuYear"></div><div class="rank gap" id="stuSpec"></div><div class="rank gap" id="stuCollege"></div></div>
+    <div class="fx-card"><h2>Professionals: role, experience &amp; qualification</h2><div class="rank" id="proRole"></div><div class="rank gap" id="proExp"></div><div class="rank gap" id="proQual"></div></div>
+  </section>
+
+  <section class="fx-card">
+    <h2>Latest registrations</h2>
+    <ul class="feed" id="feed"></ul>
+    <div class="empty" id="emptyFeed" hidden>No registrations yet.</div>
+  </section>
+  <div id="insights" aria-label="Funnel, devices, map and IP quality"></div>
+</main>
+<script src="/admin/assets/fullscreen.js"></script>
+<script src="/admin/assets/analytics.js"></script>
+<script src="/admin/assets/insights.js"></script>
+</body>
+</html>

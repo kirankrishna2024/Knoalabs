@@ -1,0 +1,48 @@
+-- 014: new nullable columns on leads. Existing columns and rows are untouched; NULL = recorded before this migration.
+-- geo_postal is deliberately absent (GEO_STORE_POSTAL is off by default; add a column only if it is ever switched on).
+-- ROLLBACK: ALTER TABLE leads DROP COLUMN IF EXISTS <each column below>; (safe, nothing else reads them yet)
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS form_id BIGINT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS form_version INTEGER;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS visitor_id TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS session_id TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS campaign_id BIGINT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS source_detected TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS source_method TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS device_type TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS os TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS browser TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS in_app TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ip_hash TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ip_version INTEGER;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_city TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_region TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_region_code TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_country_code TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_country TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_lat NUMERIC(6,2);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_lon NUMERIC(6,2);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_timezone TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_utc_offset TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_calling_code TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_asn TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_org TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_in_eu BOOLEAN;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_source TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_status TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_precision TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_looked_up_at TIMESTAMPTZ;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS phone_country_mismatch BOOLEAN;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_returning_lead BOOLEAN;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_lead_id BIGINT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS submission_count INTEGER;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS visit_count_before_signup INTEGER;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS time_to_register_seconds INTEGER;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS leads_form_id_idx ON leads (form_id);
+CREATE INDEX IF NOT EXISTS leads_campaign_id_idx ON leads (campaign_id);
+CREATE INDEX IF NOT EXISTS leads_visitor_id_idx ON leads (visitor_id);
+CREATE INDEX IF NOT EXISTS leads_phone_idx ON leads (phone);
+CREATE INDEX IF NOT EXISTS leads_email_lower_idx ON leads (LOWER(email));
+CREATE INDEX IF NOT EXISTS leads_source_detected_idx ON leads (source_detected);
+CREATE INDEX IF NOT EXISTS leads_geo_region_idx ON leads (geo_region);

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>QR generator | KnoaLabs Admin</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<link rel="stylesheet" href="/admin/assets/links.css">
+<link rel="stylesheet" href="/admin/assets/qr.css">
+</head>
+<body class="dash-page">
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span><em>Admin</em></div>
+    <nav class="tabs" aria-label="Admin sections">
+      <a href="/admin">Leads</a>
+      <a href="/admin/analytics">Live analytics</a>
+      <a href="/admin/forms">Form Studio</a>
+      <a href="/admin/campaigns">Campaigns</a>
+      <a href="/admin/qr" class="on" aria-current="page">QR generator</a>
+    </nav>
+    <div class="who">
+      <span id="who" class="who-name"></span>
+      <button class="btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<main class="dash" id="main">
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Print &amp; share</p>
+      <h1>QR <span class="glow-text">generator</span></h1>
+      <p class="sub">Build a tagged ad link, turn it into a QR code and download it as a sharp PNG, JPEG or SVG. Scans are counted in Live analytics like any other link.</p>
+    </div>
+  </div>
+
+  <div class="qr-layout">
+    <section class="qr-card" aria-labelledby="hLink">
+      <h2 id="hLink"><span class="qr-step">1</span> The link</h2>
+      <div class="seg compact" id="qrMode" role="group" aria-label="Link source">
+        <button type="button" class="on" data-mode="build" aria-pressed="true">Build an ad link</button>
+        <button type="button" data-mode="any" aria-pressed="false">Use any link</button>
+      </div>
+
+      <div id="paneBuild" class="qr-pane"></div>
+      <div id="paneAny" class="qr-pane" hidden>
+        <label class="lbf"><span>Link or text to turn into a QR code</span>
+          <input class="control sm" id="anyLink" type="text" maxlength="1000" placeholder="https://…" autocomplete="off" spellcheck="false"></label>
+      </div>
+
+      <div class="qr-linkbox" id="qrLinkBox" hidden>
+        <span class="flabel">QR code opens</span>
+        <code id="qrUrl" class="lbuild-url">–</code>
+        <div class="qr-linkrow" id="linkRow"></div>
+        <p class="qr-warn" id="qrWarn" role="status" hidden></p>
+      </div>
+    </section>
+
+    <section class="qr-card qr-out" aria-labelledby="hQr">
+      <h2 id="hQr"><span class="qr-step">2</span> Your QR code</h2>
+      <p class="qr-wait" id="qrWait" role="status" aria-live="polite">Choose a master class, medium and campaign name to get the link and QR code.</p>
+      <div id="qrBody" hidden>
+      <div class="qr-stage"><canvas id="qrCanvas" class="qr-canvas" role="img" aria-label="QR code preview"></canvas></div>
+      <p class="qr-dim muted small-note" id="qrDim">&nbsp;</p>
+
+      <div class="qr-opts">
+        <label class="lbf"><span>Download size</span>
+          <select class="control sm" id="optSize">
+            <option value="512">512 px · screen</option>
+            <option value="1024">1024 px · social / web</option>
+            <option value="2048" selected>2048 px · print (recommended)</option>
+            <option value="4096">4096 px · posters &amp; banners</option>
+          </select></label>
+        <label class="lbf"><span>Error correction</span>
+          <select class="control sm" id="optEcc">
+            <option value="L">Low · simplest code</option>
+            <option value="M">Medium</option>
+            <option value="Q" selected>Quartile · recommended</option>
+            <option value="H">High · survives scratches</option>
+          </select></label>
+        <label class="lbf"><span>Colour</span>
+          <select class="control sm" id="optFg">
+            <option value="#0d1211">Black / ink</option>
+            <option value="#065f4e">KnoaLabs green</option>
+            <option value="#14403a">Deep teal</option>
+            <option value="#1d4ed8">Blue</option>
+            <option value="#000000">Pure black</option>
+          </select></label>
+        <label class="lbf"><span>White border</span>
+          <select class="control sm" id="optMargin">
+            <option value="2">Slim</option>
+            <option value="4" selected>Standard</option>
+            <option value="6">Wide</option>
+          </select></label>
+      </div>
+      <label class="qr-check"><input type="checkbox" id="optLogo"> <span>Put the KnoaLabs logo in the middle <em>(uses high error correction)</em></span></label>
+
+      <div class="qr-dl" role="group" aria-label="Download">
+        <button class="kbtn primary" id="dlPng" type="button">Download PNG</button>
+        <button class="kbtn primary" id="dlJpg" type="button">Download JPEG</button>
+        <button class="kbtn" id="dlSvg" type="button">Download SVG</button>
+        <button class="kbtn" id="cpImg" type="button">Copy image</button>
+      </div>
+      <p class="qr-tip muted small-note">PNG is lossless: best for print and design tools. JPEG is smaller: best for WhatsApp and email. SVG is vector: scales to any size. Always scan a test print before sending it out.</p>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="/admin/assets/vendor/qrcode.js"></script>
+<script src="/admin/assets/kit.js"></script>
+<script src="/admin/assets/builder.js"></script>
+<script src="/admin/assets/qr.js"></script>
+<script src="/admin/assets/qr-page.js"></script>
+</body>
+</html>

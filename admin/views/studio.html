@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Studio | KnoaLabs Admin</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<link rel="stylesheet" href="/admin/assets/links.css">
+<link rel="stylesheet" href="/admin/assets/studio.css">
+<link rel="stylesheet" href="/admin/assets/qr.css">
+</head>
+<body class="dash-page st-page">
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span><em>Admin</em></div>
+    <nav class="tabs" aria-label="Admin sections">
+      <a href="/admin">Leads</a>
+      <a href="/admin/analytics">Live analytics</a>
+      <a href="/admin/forms" class="on" aria-current="page">Form Studio</a>
+      <a href="/admin/campaigns">Campaigns</a>
+      <a href="/admin/qr">QR generator</a>
+    </nav>
+    <div class="who">
+      <span id="who" class="who-name"></span>
+      <button class="btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+<div class="st-bar">
+  <div class="st-bar-in">
+    <a class="st-back" href="/admin/forms">&larr; All forms</a>
+    <div class="st-title"><h1 id="stName">Form</h1><span id="stStatus" class="chip"></span><span id="stVer" class="muted"></span></div>
+    <div class="st-save" id="stSave" role="status" aria-live="polite">&nbsp;</div>
+    <div class="st-actions">
+      <button class="kbtn" id="btnHistory" type="button">History</button>
+      <button class="kbtn" id="btnLinks" type="button">Links &amp; QR</button>
+      <button class="kbtn" id="btnDiscard" type="button">Discard changes</button>
+      <button class="kbtn primary" id="btnPublish" type="button">Publish</button>
+    </div>
+  </div>
+  <div id="stProblems" class="st-problems" role="alert" hidden></div>
+</div>
+<main class="st">
+  <aside class="st-col st-layout" aria-label="Layout">
+    <div class="st-h"><h2>Layout</h2><span class="muted">Drag to reorder. Drop a field in another section to move it.</span></div>
+    <div id="layout"></div>
+    <div class="st-add">
+      <label class="muted" for="addType">Add a field</label>
+      <div class="st-add-row"><select class="control sm" id="addType"></select><button class="kbtn" id="btnAddField" type="button">Add</button></div>
+      <button class="kbtn" id="btnAddSection" type="button">Add section</button>
+    </div>
+    <details id="deletedBox" class="st-deleted" hidden><summary>Deleted fields</summary><div id="deletedList"></div></details>
+  </aside>
+  <section class="st-col st-preview" aria-label="Live preview">
+    <div class="st-h"><h2>Live preview</h2>
+      <div class="seg" role="group" aria-label="Preview size"><button type="button" data-w="390" class="on">Phone</button><button type="button" data-w="768">Tablet</button><button type="button" data-w="0">Desktop</button></div></div>
+    <div class="st-frame-wrap"><iframe id="preview" title="Form preview" class="st-frame"></iframe></div>
+  </section>
+  <aside class="st-col st-inspect" aria-label="Settings">
+    <div class="tabs2" role="tablist"><button type="button" role="tab" data-tab="field" class="on">Field</button><button type="button" role="tab" data-tab="text">Form text</button></div>
+    <div id="tabField"></div><div id="tabText" hidden></div>
+  </aside>
+</main>
+<div id="modalRoot"></div>
+<script src="/admin/assets/vendor/sortable.min.js"></script>
+<script src="/admin/assets/vendor/qrcode.js"></script>
+<script src="/admin/assets/qr.js"></script>
+<script src="/admin/assets/kit.js"></script>
+<script src="/admin/assets/studio.js"></script>
+</body>
+</html>

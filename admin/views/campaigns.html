@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Campaigns | KnoaLabs Admin</title>
+<meta name="theme-color" content="#14403a">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<link rel="stylesheet" href="/admin/assets/links.css">
+<link rel="stylesheet" href="/admin/assets/studio.css">
+<link rel="stylesheet" href="/admin/assets/qr.css">
+</head>
+<body class="dash-page">
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><img src="/logo.png" alt=""><span>KnoaLabs</span><em>Admin</em></div>
+    <nav class="tabs" aria-label="Admin sections">
+      <a href="/admin">Leads</a>
+      <a href="/admin/analytics">Live analytics</a>
+      <a href="/admin/forms">Form Studio</a>
+      <a href="/admin/campaigns" class="on" aria-current="page">Campaigns</a>
+      <a href="/admin/qr">QR generator</a>
+    </nav>
+    <div class="who">
+      <span id="who" class="who-name"></span>
+      <button class="btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+<main class="dash">
+  <div class="page-head"><div><h1>Campaigns</h1><p class="sub">Every form can run many campaigns. The <strong>active</strong> campaign of a form is what its plain link (for example <code>/student-intake</code>) forwards to. Where the ad runs is detected from the ad's click id or referrer.</p></div>
+    <button class="btn btn-sm" id="newCampaign" type="button"><span class="label">New campaign</span><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></div>
+  <div id="err" class="form-error" role="alert" hidden></div>
+  <div id="campList" aria-live="polite"><p class="muted">Loading…</p></div>
+</main>
+<script src="/admin/assets/vendor/qrcode.js"></script>
+<script src="/admin/assets/kit.js"></script>
+<script src="/admin/assets/qr.js"></script>
+<script src="/admin/assets/campaigns.js"></script>
+</body>
+</html>

@@ -125,7 +125,7 @@
     <div class="chart-head"><div><h2 id="hDet">Traffic sources detected</h2><p class="muted small-note" id="detNote">Where visitors came from, found automatically: the tag in the link, the ad click id, the app that opened the link (Instagram, Facebook ...) or the website that sent them. WhatsApp, QR scans, ChatGPT and other AI tools are listed even when they have no leads yet. Click one to filter the whole page.</p></div></div>
     <div class="src-grid" id="detGrid" role="group" aria-label="Detected traffic sources"></div>
     <div class="grid2 src-more">
-      <div><h3 class="ins-sub">How the source was found</h3><div class="rank" id="detMethods"></div></div>
+      <div><h3 class="ins-sub">How the source was found</h3><p class="muted small-note">Everyone who opened the page and the people who registered, per signal (tag in the link, ad click id, in-app browser, referring website).</p><div class="browser-split" id="detMethods"></div></div>
       <div><h3 class="ins-sub">Websites that sent visitors (referrals and redirects)</h3><div class="rank" id="detHosts"></div></div>
     </div>
   </section>
@@ -240,8 +240,8 @@
   </section>
 
   <section class="grid2">
-    <div class="fx-card"><h2>Browsers</h2><p class="muted small-note">The browser each registration used. Links opened inside Instagram, Facebook, WhatsApp, LinkedIn ... are listed as that app's own browser, not as Chrome.</p><div class="rank" id="browsers"></div></div>
-    <div class="fx-card"><h2>Opened inside an app</h2><p class="muted small-note">Registrations that came from the app's own built-in browser (no Chrome / Safari).</p><div class="rank" id="inAppList"></div></div>
+    <div class="fx-card"><h2>Browsers</h2><p class="muted small-note">Everyone who opened the page and the people who registered, per browser. Links opened inside Instagram, Facebook, WhatsApp, LinkedIn ... are listed as that app's own browser, not as Chrome. A browser that brings visitors but no registrations is still listed. The visitor side follows the period, master class and campaign; it cannot be split by "I am a" (a visitor has not chosen one).</p><div class="browser-split" id="browsers"></div></div>
+    <div class="fx-card"><h2>Opened inside an app</h2><p class="muted small-note">The app's own built-in browser (no Chrome / Safari): everyone who opened the page and the people who registered. Many of these visitors never see a normal browser, so they can be missing from other tools.</p><div class="browser-split" id="inAppList"></div></div>
   </section>
 
   <section class="grid2">

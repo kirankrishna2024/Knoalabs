@@ -184,7 +184,10 @@
 @media(max-width:1100px){.stats.five{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){
   .stats.five,.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:minmax(0,1fr)}
-  .tabs{order:3;width:100%;margin:0;justify-content:stretch}.tabs a{flex:1;text-align:center}
+  /* five tabs do not fit a phone: scroll the tab strip sideways inside itself instead of widening the whole page */
+  .tabs{order:3;width:100%;margin:0;justify-content:flex-start;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{flex:0 0 auto;padding:7px 13px;font-size:.84rem}
   .seg{width:100%}.seg button{flex:1}
   .period .control.sm{flex:1 1 140px}
   .insights{grid-template-columns:1fr}

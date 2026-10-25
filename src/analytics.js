@@ -7,6 +7,7 @@
 // Everything is bucketed by the *calendar day in the configured time zone* (TIMEZONE, default Asia/Kolkata),
 // so "today" means the same thing here as on the leads dashboard and in the Excel export.
 const O = require('./options');
+const db = require('./db');
 const Lead = require('./models/Lead');
 const Visit = require('./models/Visit');
 const { STATUSES } = O;
@@ -172,7 +173,7 @@ function metaPanel(byApp, byPlacement, opensAvailable) {
 const METHOD_NAMES = { utm: 'Tagged link (utm)', click_id: 'Ad click id', in_app: 'In-app browser', referrer: 'Referring website', direct: 'No signal (direct)' };
 const ALWAYS_SHOWN = ['WhatsApp', 'QR scan', 'ChatGPT / AI', 'Short / bio link', 'Meta', 'Google', 'Email'];       // listed even at zero, so you can see they are being watched
 /** "Traffic sources detected" panel: per channel the registrations, link opens, how it was found and (for referrals) which websites. */
-function detectedPanel(det, detMethods, opensAvailable, conv, hostMap = new Map()) {
+function detectedPanel(det, detMethods, opensAvailable, conv, hostMap = new Map(), methodOpens = new Map()) {
   for (const name of ALWAYS_SHOWN) if (!det.has(name)) det.set(name, { n: 0, opens: 0, methods: new Map(), hosts: new Map() });
   const total = [...det.values()].reduce((x, o) => x + o.n, 0);
   const items = [...det].map(([name, o]) => ({ name, n: o.n, share: total ? Math.round((o.n / total) * 1000) / 10 : 0, opens: opensAvailable ? o.opens : null,
@@ -183,7 +184,12 @@ function detectedPanel(det, detMethods, opensAvailable, conv, hostMap = new Map(
   const hosts = [...hostMap].map(([name, o]) => ({ name, n: o.n, opens: opensAvailable ? o.opens : null, conversionPct: opensAvailable ? conv(o.n, o.opens) : null, redirect: REDIRECTORS.test(name),
     channel: top(o.channels, 1)[0] ? top(o.channels, 1)[0].name : null }))
     .filter((h) => h.n || h.opens).sort((a, b) => (b.opens || 0) + b.n - ((a.opens || 0) + a.n) || a.name.localeCompare(b.name)).slice(0, 25);
-  return { total, items: items.slice(0, 20), hosts, methods: top(detMethods, 6).map((m) => ({ key: m.name, name: METHOD_NAMES[m.name] || m.name, n: m.n })) };
+  /* every signal that brought a registration OR a link open: a way of finding the link that only sent visitors (no leads yet)
+     must still be listed, otherwise "no leads" and "not detected" look the same. */
+  const methodKeys = new Set([...detMethods.keys(), ...methodOpens.keys()]);
+  const methods = [...methodKeys].map((key) => ({ key, name: METHOD_NAMES[key] || key, n: detMethods.get(key) || 0, opens: opensAvailable ? (methodOpens.get(key) || 0) : null }))
+    .sort((a, b) => (b.opens || 0) + b.n - ((a.opens || 0) + a.n) || a.name.localeCompare(b.name)).slice(0, 6);
+  return { total, items: items.slice(0, 20), hosts, methods };
 }
 
 /**
@@ -191,7 +197,7 @@ function detectedPanel(det, detMethods, opensAvailable, conv, hostMap = new Map(
  * the chips can show how many leads each option would give with the *other* filters in place (faceted counts).
  * Returns the numbers for the selected window, plus today / 7 / 30 day counts and the previous period for the % change.
  */
-function aggregate(rows, win, { tz, now = new Date(), filters = {}, allTime = null, visits = [], firstVisitAt = null } = {}) {
+function aggregate(rows, win, { tz, now = new Date(), filters = {}, allTime = null, visits = [], firstVisitAt = null, visitorRows = [] } = {}) {
   const n = win.n;
   const bMs = win.bounds.map((d) => d.getTime());
   const prevStartMs = midnight(tz, addDays(win.start, -n)).getTime();
@@ -214,7 +220,8 @@ function aggregate(rows, win, { tz, now = new Date(), filters = {}, allTime = nu
   const metaP = new Map(), metaPl = new Map(); // Meta panel: app -> { n, students, professionals, opens }, placement -> { n, opens, app }   (ignores the platform filter, so you can hop between apps)
   const metaRow = (map, key, extra) => { let o = map.get(key); if (!o) { o = { n: 0, students: 0, professionals: 0, opens: 0, ...extra }; map.set(key, o); } return o; };
   const labelOf = { course: new Map(), campaign: new Map(), channel: new Map(), medium: new Map() };
-  const browsers = new Map(), inApps = new Map(), det = new Map(), detMethods = new Map();      // browser list, in-app browsers, detected sources (ignores the channel filter, like the Meta panel)
+  const browsers = new Map(), inApps = new Map(), det = new Map(), detMethods = new Map(), methodOpens = new Map();      // browser list, in-app browsers, detected sources (ignores the channel filter, like the Meta panel)
+  const vBrowsers = new Map(), vInApps = new Map(), vDevices = new Map(), vOs = new Map();   // the same breakdown for everyone who opened the page (visitor browser lives on `visitors`, not on page_visits)
   const hostMap = new Map();   // referring website -> { n: registrations, opens, channels }  (any lead or link open that carried a referring site, whatever else tagged it)
   const hostRow = (h) => { let o = hostMap.get(h); if (!o) { o = { n: 0, opens: 0, channels: new Map() }; hostMap.set(h, o); } return o; };
   const detRow = (ch) => { let o = det.get(ch); if (!o) { o = { n: 0, opens: 0, methods: new Map(), hosts: new Map() }; det.set(ch, o); } return o; };
@@ -305,7 +312,7 @@ function aggregate(rows, win, { tz, now = new Date(), filters = {}, allTime = nu
     const vr = visitRow(g);
     const slug = g.course_slug || NO_COURSE, campKey = campaignOf(vr), ch = channelOf(vr), medKey = mediumOf(vr), vplat = platformOf(vr);
     if ((filters.course && slug !== filters.course) || (filters.campaign && campKey !== filters.campaign) || (filters.medium && medKey !== filters.medium)) continue;
-    if (dayIndex(bMs, t) >= 0 && (!filters.platform || vplat === filters.platform)) { detRow(ch).opens += cnt; if (g.referrer_host) { const ho = hostRow(String(g.referrer_host).toLowerCase()); ho.opens += cnt; bump(ho.channels, ch, cnt); } }
+    if (dayIndex(bMs, t) >= 0 && (!filters.platform || vplat === filters.platform)) { detRow(ch).opens += cnt; bump(methodOpens, g.source_method || methodOf(vr), cnt); if (g.referrer_host) { const ho = hostRow(String(g.referrer_host).toLowerCase()); ho.opens += cnt; bump(ho.channels, ch, cnt); } }
     if (filters.channel && ch !== filters.channel) continue;
     if (vplat !== NO_PLATFORM && dayIndex(bMs, t) >= 0) { metaRow(metaP, vplat).opens += cnt; if (g.meta_placement) metaRow(metaPl, g.meta_placement, { app: vplat }).opens += cnt; }
     if (filters.platform && vplat !== filters.platform) continue;
@@ -316,6 +323,19 @@ function aggregate(rows, win, { tz, now = new Date(), filters = {}, allTime = nu
     let vc = vcamp.get(campKey); if (!vc) { vc = { n: 0, channels: new Map(), courses: new Map() }; vcamp.set(campKey, vc); }
     vc.n += cnt; bump(vc.channels, ch, cnt); bump(vc.courses, courseName(slug, null), cnt);
   }
+  /* everyone who opened the page in the window (from `visitors` + `sessions`): their browsers, in-app browsers and devices.
+     The "I am a" / channel / medium filters cannot be applied to a visitor who has not answered anything yet, so these
+     numbers follow the master class and campaign only (the same rule as link opens). */
+  for (const v of visitorRows) {
+    const cnt = Number(v.n) || 0;
+    if (!cnt) continue;
+    const b = browserLabel({ browser: v.browser, in_app: v.in_app });
+    bump(vBrowsers, b, cnt);
+    if (v.in_app) bump(vInApps, v.in_app, cnt);
+    bump(vDevices, v.device_type ? v.device_type.charAt(0).toUpperCase() + v.device_type.slice(1) : 'Unknown', cnt);
+    bump(vOs, v.os || 'Unknown', cnt);
+  }
+
   // a campaign people opened but nobody registered through still gets a row (that is exactly what you want to spot)
   for (const [campKey, vc] of vcamp) if (!campRows.has(campKey)) campRows.set(campKey, { key: campKey, name: campaignName(campKey), n: 0, students: 0, professionals: 0, data: new Array(n).fill(0), channels: vc.channels, courses: vc.courses, lastMs: 0 });
 
@@ -416,7 +436,12 @@ function aggregate(rows, win, { tz, now = new Date(), filters = {}, allTime = nu
     heatmap: heat,
     browsers: top(browsers, 12).map((c) => ({ ...c, share: share(c.n) })),
     inApp: top(inApps, 8).map((c) => ({ ...c, share: share(c.n) })),
-    detected: detectedPanel(det, detMethods, vAvailable, conv, hostMap),
+    /* the same panels for everyone who opened the page, so a browser or an app that sends visitors but no registrations is visible */
+    visitors: {
+      available: vAvailable, total: [...vBrowsers.values()].reduce((a, b) => a + b, 0),
+      browsers: top(vBrowsers, 12), inApp: top(vInApps, 8), devices: top(vDevices, 4), os: top(vOs, 8)
+    },
+    detected: detectedPanel(det, detMethods, vAvailable, conv, hostMap, methodOpens),
     quality: { withEmail, emailPct: inWindow ? Math.round((withEmail / inWindow) * 1000) / 10 : 0 },
     colleges: top(colleges, 6)
   };
@@ -445,14 +470,24 @@ async function compute({ tz, now, query }) {
   const win = resolveWindow({ tz, now, from: query.from, to: query.to, days: query.days });
   const prevStart = midnight(tz, addDays(win.start, -win.n));
   const since = new Date(Math.min(prevStart.getTime(), startOfDay(tz, now, -29).getTime()));
-  const [rows, allTime, recent, visits, firstVisitAt] = await Promise.all([
+  /* visitors in the window, grouped: the browser / in-app / device panels need everyone who opened the page, not only the people who registered.
+     Master class and campaign narrow it through the session they opened; "I am a", channel and medium cannot (a visitor has not answered yet). */
+  const vParams = [new Date(win.bounds[0]), new Date(win.bounds[win.n])];
+  const vWhere = ['s.started_at >= $1', 's.started_at < $2'];
+  if (filters.course) { vParams.push(filters.course); vWhere.push('s.course_slug = $' + vParams.length); }
+  if (filters.campaign) { vParams.push(filters.campaign); vWhere.push('EXISTS (SELECT 1 FROM campaigns c WHERE c.id = s.campaign_id AND c.utm_campaign = $' + vParams.length + ')'); }
+  const [rows, allTime, recent, visits, firstVisitAt, visitorRows] = await Promise.all([
     Lead.forAnalytics({ since }),                                    // every filter is applied in aggregate() so the chips can show their counts
     allTimeCount(filters),
     recentLeads(filters, 8),
     Visit.groups({ since: new Date(Math.min(win.bounds[0].getTime(), startOfDay(tz, now, 0).getTime())) }),
-    Visit.firstAt()
+    Visit.firstAt(),
+    db.query(`SELECT v.browser, v.in_app, v.device_type, v.os, COUNT(DISTINCT v.visitor_id)::int AS n
+              FROM visitors v JOIN sessions s ON s.visitor_id = v.visitor_id
+              WHERE ${vWhere.join(' AND ')} GROUP BY v.browser, v.in_app, v.device_type, v.os`, vParams)
+      .then((r) => r.rows).catch(() => [])                               // a visitor table problem must never empty the whole page
   ]);
-  const out = aggregate(rows, win, { tz, now, filters, allTime, visits, firstVisitAt });
+  const out = aggregate(rows, win, { tz, now, filters, allTime, visits, firstVisitAt, visitorRows });
   // chips: the configured master classes (even at zero) + any other course that has leads in the window, each with its count
   const cnt = new Map(out.facets.course.items.map((o) => [o.key, o.n]));
   const courses = [...Object.entries(O.COURSES).map(([slug, name]) => ({ slug, name, n: cnt.get(slug) || 0 }))];

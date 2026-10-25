@@ -23,10 +23,18 @@ const BUCKETS = [['Under 1 minute', 60], ['1 to 3 minutes', 180], ['3 to 10 minu
 /** Filters = the same ones as the rest of the page (I am a, master class, campaign, channel, medium, Meta app). */
 function cleanFilters(q) { return normalizeFilters(q || {}); }
 
-const GEO_PERIODS = { today: 'Today', yesterday: 'Yesterday', '24h': 'Last 24 hours', '2': 'Last 2 days', '7': 'Last 7 days', '14': 'Last 14 days', '30': 'Last 30 days', '90': 'Last 90 days', all: 'All time', page: 'Same as the page period' };
+/* An array, not an object: JavaScript lists integer-like object keys ("24", "2", "7" ...) first, which put the map's
+   period buttons in a random-looking order. The order below is the one the page shows. */
+const GEO_PERIODS = [
+  ['today', 'Today'], ['24h', 'Last 24 hours'], ['yesterday', 'Yesterday'], ['2', 'Last 2 days'],
+  ['7', 'Last 7 days'], ['14', 'Last 14 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days'],
+  ['all', 'All time'], ['page', 'Same as the page period']
+];
+const GEO_LABELS = new Map(GEO_PERIODS);
+const GEO_DEFAULT = 'page';                 // the map opens on the page's own period, so it never disagrees with the numbers above it
 /** The period of the map. Today / yesterday are calendar days in the configured time zone; 7 and 14 days end today. */
 function geoWindow(key, tz, now, win) {
-  const k = Object.prototype.hasOwnProperty.call(GEO_PERIODS, key) ? key : 'today';       // the map opens on Today
+  const k = GEO_LABELS.has(key) ? key : GEO_DEFAULT;
   let start, end;
   if (k === 'today') { start = startOfDay(tz, now, 0); end = startOfDay(tz, now, 1); }
   else if (k === 'yesterday') { start = startOfDay(tz, now, -1); end = startOfDay(tz, now, 0); }
@@ -38,7 +46,7 @@ function geoWindow(key, tz, now, win) {
   else if (k === '7') { start = startOfDay(tz, now, -6); end = startOfDay(tz, now, 1); }
   else if (k === '14') { start = startOfDay(tz, now, -13); end = startOfDay(tz, now, 1); }
   else { start = new Date(win.bounds[0]); end = new Date(win.bounds[win.n]); }
-  return { key: k, label: GEO_PERIODS[k], start, end };
+  return { key: k, label: GEO_LABELS.get(k), start, end };
 }
 
 const cache = new Map();                    // the page asks every few seconds; one computation serves every open tab for a few seconds
@@ -145,7 +153,7 @@ async function compute({ tz, query = {}, now = new Date() }) {
   const unregItems = unregRows.map((v) => ({ code: v.geo_country_code, region: v.geo_region, city: v.geo_city, lat: num(v.geo_lat), lon: num(v.geo_lon) }));
   const regAgg = aggregate(regItems), unregAgg = aggregate(unregItems);
   const geo = {
-    period: { key: gw.key, label: gw.label, from: gw.start.toISOString(), to: gw.end.toISOString(), options: Object.entries(GEO_PERIODS).map(([key, label]) => ({ key, label })) },
+    period: { key: gw.key, label: gw.label, from: gw.start.toISOString(), to: gw.end.toISOString(), options: GEO_PERIODS.map(([key, label]) => ({ key, label })) },
     countries: regAgg.countries, regions: regAgg.regions, cities: regAgg.cities,
     located: regAgg.located, exactLocated, unknown: geoLeads.length - regAgg.located, total: geoLeads.length,
     unregisteredAvailable: !f.status,

@@ -5,6 +5,7 @@ process.env.SESSION_SECRET = 'w'.repeat(40); process.env.ADMIN_LOGIN_MAX = '50';
 const assert = require('assert');
 const ExcelJS = require('exceljs');
 const { JSDOM, CookieJar, VirtualConsole } = require('jsdom');
+const { pageFetch } = require('./fixtures/fetch');
 const { newDb } = require('pg-mem');
 const db = require('../src/db'); const migrate = require('../src/migrate'); const forms = require('../src/forms');
 const { createApp, seedAdmin } = require('../server');
@@ -60,7 +61,7 @@ const until = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now()
   /* the screen: filter by master class and the unneeded parts disappear */
   const jar = new CookieJar(); jar.setCookieSync(cookie + '; Path=/', base);
   const open = async (p) => { const errs = []; const vc = new VirtualConsole(); vc.on('jsdomError', (e) => { if (!/Could not load link/.test(String(e.message))) errs.push(String(e.message).slice(0, 200)); });
-    const dom = await JSDOM.fromURL(base + p, { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, cookieJar: jar, virtualConsole: vc, beforeParse(w) { w.fetch = (u, o = {}) => fetch(new URL(u, base), { ...o, headers: { ...(o.headers || {}), Cookie: cookie } }); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; } }); dom.errs = errs; return dom; };
+    const dom = await JSDOM.fromURL(base + p, { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, cookieJar: jar, virtualConsole: vc, beforeParse(w) { w.fetch = pageFetch(base, cookie); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; } }); dom.errs = errs; return dom; };
   const off = (d, id) => d.getElementById(id).classList.contains('is-off');
   let dom = await open('/admin/analytics?days=7'), d = dom.window.document;
   await until(() => d.getElementById('answersSec').hidden === false);

@@ -2,7 +2,7 @@
    Data: GET /admin/api/insights (same period / master class / campaign as the filters above). Everything is inserted as text. */
 (function () {
   'use strict';
-  var NS = 'http://www.w3.org/2000/svg', host = document.getElementById('insights'), lastQs = null, data = null, world = null, states = null, timer = null, map = null, geoKey = 'today', mapKeep = null, mapShown = { reg: true, unreg: true }, listTab = 0, secs = null, sigs = {}, fitNext = true;
+  var NS = 'http://www.w3.org/2000/svg', host = document.getElementById('insights'), lastQs = null, data = null, world = null, states = null, timer = null, map = null, geoKey = 'page', mapKeep = null, mapShown = { reg: true, unreg: true }, listTab = 0, secs = null, sigs = {}, fitNext = true;
   if (!host) return;
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function sv(tag, attrs) { var n = document.createElementNS(NS, tag); for (var k in attrs) n.setAttribute(k, attrs[k]); return n; }
@@ -53,14 +53,16 @@
   function Map2(box, svg, layers) {
     var vb = { x: 0, y: 0, w: 1000, h: 500 }, tip = el('div', 'map-tip'); tip.hidden = true; box.appendChild(tip);
     var P = function (lon, lat) { return [((lon + 180) / 360) * 1000, ((90 - lat) / 180) * 500]; };
-    var maxN = 1; layers.forEach(function (L) { L.cities.forEach(function (c) { if (c.n > maxN) maxN = c.n; }); });
+    // each layer gets its own scale: unregistered visitors are almost always far more numerous, and a shared scale shrank the
+    // green registered dots so much that the amber layer hid them completely.
+    layers.forEach(function (L) { var m = 1; L.cities.forEach(function (c) { if (c.n > m) m = c.n; }); L.maxN = m; });
     var at = {}; layers.forEach(function (L) { L.cities.forEach(function (c) { var k = c.lat + '|' + c.lon; (at[k] = at[k] || {})[L.key] = c; }); });
     var dots = [], groups = {};
     layers.forEach(function (L) {                       // drawn in the order given: the first layer ends up underneath
       var g = sv('g', { 'class': 'map-layer map-' + L.key }); svg.appendChild(g); groups[L.key] = g;
       L.cities.forEach(function (c) {
         var p = P(c.lon, c.lat), dot = sv('circle', { cx: p[0], cy: p[1], 'class': 'map-dot ' + L.cls, tabindex: '0', role: 'img', 'aria-label': L.label + ': ' + c.name + ', ' + c.country + ': ' + c.n });
-        dot._n = c.n; dot._s = L.key === 'unreg' ? 0.78 : 1; dot.addEventListener('mouseenter', function () { show(c, dot); }); dot.addEventListener('focus', function () { show(c, dot); }); dot.addEventListener('click', function () { show(c, dot); });
+        dot._n = c.n; dot._max = L.maxN; dot._s = L.key === 'unreg' ? 0.86 : 1; dot.addEventListener('mouseenter', function () { show(c, dot); }); dot.addEventListener('focus', function () { show(c, dot); }); dot.addEventListener('click', function () { show(c, dot); });
         g.appendChild(dot); dots.push(dot);
       });
     });
@@ -72,7 +74,7 @@
     }
     function apply() {
       svg.setAttribute('viewBox', [vb.x, vb.y, vb.w, vb.h].map(function (n) { return n.toFixed(2); }).join(' '));
-      var k = vb.w / 1000; dots.forEach(function (d) { d.setAttribute('r', ((3 + Math.sqrt(d._n / maxN) * 11) * (d._s || 1) * Math.max(k, 0.04)).toFixed(2)); });
+      var k = vb.w / 1000; dots.forEach(function (d) { d.setAttribute('r', ((3 + Math.sqrt(d._n / (d._max || 1)) * 11) * (d._s || 1) * Math.max(k, 0.04)).toFixed(2)); });
     }
     function clamp() { vb.w = Math.min(1000, Math.max(8, vb.w)); vb.h = vb.w / 2; vb.x = Math.min(1000 - vb.w, Math.max(0, vb.x)); vb.y = Math.min(500 - vb.h, Math.max(0, vb.y)); }
     function zoom(f, cx, cy) { var nw = vb.w * f; cx = cx == null ? vb.x + vb.w / 2 : cx; cy = cy == null ? vb.y + vb.h / 2 : cy; var rx = (cx - vb.x) / vb.w, ry = (cy - vb.y) / vb.h; vb.w = nw; vb.h = nw / 2; vb.x = cx - rx * vb.w; vb.y = cy - ry * vb.h; clamp(); apply(); }
@@ -90,7 +92,10 @@
     });
     apply();
     var shown = {}; layers.forEach(function (L) { shown[L.key] = true; });
-    return { zoom: zoom, view: view, getView: function () { return { x: vb.x, y: vb.y, w: vb.w }; }, world: function () { view(0, 0, 1000); }, india: function () { view(676, 136, 110); },
+    return { zoom: zoom, view: view, getView: function () { return { x: vb.x, y: vb.y, w: vb.w }; }, world: function () { view(0, 0, 1000); },
+      /* India from Gujarat and Punjab to Arunachal Pradesh, and from Kashmir down to Kanyakumari and Kerala (the old box stopped
+         at about 19°N, so the whole south of India, Kerala included, was outside the view). */
+      india: function () { view(624, 132, 198); },
       layer: function (key, on) { shown[key] = on; mapKeep && (mapKeep.layers = mapKeep.layers || {}, mapKeep.layers[key] = on); groups[key].style.display = on ? '' : 'none'; if (!on) tip.hidden = true; },
       fit: function () {
         var pts = []; layers.forEach(function (L) { if (shown[L.key]) L.cities.forEach(function (c) { pts.push(P(c.lon, c.lat)); }); });
@@ -166,6 +171,7 @@
   }
   function mapCard(d) {
     var g = d.geo, u = g.unregistered || { cities: [], countries: [], regions: [], located: 0, unknown: 0, total: 0 };
+    var pl = (g.period && g.period.label) || 'this period', pw = g.period && g.period.key === 'page' ? 'page period' : pl.toLowerCase();
     var c = card('Where people come from', 'Approximate location of the internet connection (city level, not an address). Registered people and visitors who did not register are shown separately. Phones on mobile data often show the nearest city of the carrier.');
     var layers = [                                       // drawn in this order: registered underneath, the amber "did not register" dots on top so they are never hidden
       { key: 'reg', label: 'Registered', noun: 'registered', cls: 'reg', cities: withAreaDots(g) },
@@ -184,7 +190,7 @@
     if (world) { var land = sv('path', { d: world.d, 'class': 'map-land' }); svg.appendChild(land); }
     drawStates(svg, box, g, u);
     map = Map2(box, svg, layers);
-    if (!layers[0].cities.length && !layers[1].cities.length) box.appendChild(el('div', 'map-empty', 'Nobody with a known location in "' + ((g.period && g.period.label) || 'this period') + '". Try Last 7 days, Last 14 days or All time above.'));
+    if (!layers[0].cities.length && !layers[1].cities.length) box.appendChild(el('div', 'map-empty', 'Nobody with a known location in "' + pl + '". Try Last 7 days, Last 14 days or All time above.'));
     var keep = mapKeep;
     var mk = function (t, label, fn) { var b = el('button', 'kbtn sm', t); b.type = 'button'; b.setAttribute('aria-label', label); b.addEventListener('click', fn); return b; };
     var legend = el('div', 'map-legend'); legend.setAttribute('role', 'group'); legend.setAttribute('aria-label', 'Map layers');
@@ -199,7 +205,7 @@
     tools.appendChild(mk('World', 'Show the whole world', function () { map.world(); })); tools.appendChild(mk('India', 'Zoom to India', function () { map.india(); })); tools.appendChild(mk('Fit to data', 'Zoom to the people on the map', function () { map.fit(); }));
     tools.appendChild(mk('+', 'Zoom in', function () { map.zoom(0.6); })); tools.appendChild(mk('−', 'Zoom out', function () { map.zoom(1.6); }));
     tools.appendChild(el('span', 'zhint', 'Drag to move · double-click or + to zoom')); if (window.KnoaFS) tools.appendChild(window.KnoaFS.button(c, function () {}));
-    c.appendChild(el('p', 'muted small-note', num(g.located) + ' of ' + num(g.total) + ' registrations (' + ((g.period && g.period.label) || 'this period').toLowerCase() + ') have a location' + (g.exactLocated ? ' (' + num(g.exactLocated) + ' shared their exact browser location)' : '') + ' · ' + num(u.located) + ' of ' + num(u.total) + ' visitors who did not register have a location. Unknown = location lookup off, failed, or a private address.'));
+    c.appendChild(el('p', 'muted small-note', num(g.located) + ' of ' + num(g.total) + ' registrations (' + pw + ') have a location' + (g.exactLocated ? ' (' + num(g.exactLocated) + ' shared their exact browser location)' : '') + ' · ' + num(u.located) + ' of ' + num(u.total) + ' visitors who did not register have a location. Unknown = location lookup off, failed, or a private address.'));
     /* top places: a switch between the two groups */
     var seg = el('div', 'seg compact'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Show places for'); seg.style.margin = '10px 0 0';
     var lists = el('div', 'grid3'); lists.style.marginTop = '10px';

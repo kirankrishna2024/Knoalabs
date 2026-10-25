@@ -2,6 +2,7 @@
 process.env.LOG_LEVEL = 'silent'; process.env.RATE_LIMIT_MAX = '500'; process.env.ADMIN_USERNAME = 'in.admin'; process.env.ADMIN_PASSWORD = 'correct-horse-battery'; process.env.SESSION_SECRET = 'q'.repeat(40); process.env.ADMIN_LOGIN_MAX = '50';
 const assert = require('assert');
 const { JSDOM, CookieJar, VirtualConsole } = require('jsdom');
+const { pageFetch } = require('./fixtures/fetch');
 const { newDb } = require('pg-mem');
 const db = require('../src/db'); const migrate = require('../src/migrate'); const forms = require('../src/forms'); const Lead = require('../src/models/Lead');
 const { createApp, seedAdmin } = require('../server');
@@ -73,13 +74,30 @@ async function until(fn, ms = 6000) { const t = Date.now(); while (Date.now() - 
   let found = null; ws.eachRow((row, i) => { if (i > 1 && row.getCell(col('Returning (same person)')).value === 'Yes') found = row; }); assert(found); assert.strictEqual(found.getCell(col('Other answers (added in Form Studio)')).value, 'city: Kochi; interests: ai, sec'); assert.strictEqual(found.getCell(col('Same person because')).value, 'phone,device');
   ok('the leads list hides IP hash / visitor / session ids but shows the returning flag and city; the Excel export has form version, custom answers, source, device, location and same-person columns');
 
+  /* ---- the browser / in-app / "how the source was found" panels count everyone who opened the page, not only registrations ---- */
+  const an = await get('/admin/api/analytics?days=14');
+  assert.strictEqual(an.visitors.available, true); assert.strictEqual(an.visitors.total, 10);
+  assert.deepStrictEqual(an.visitors.browsers, [{ name: 'Chrome', n: 10 }], 'all ten visitors opened the page in Chrome');
+  assert.deepStrictEqual(an.visitors.devices, [{ name: 'Mobile', n: 10 }]);
+  assert.deepStrictEqual(an.browsers.map((x) => [x.name, x.n]), [['Chrome', 1], ['Edge', 1], ['Instagram in-app browser', 1], ['Unknown', 1]]);            // only the people who registered
+  assert.strictEqual(an.visitors.inApp.length, 0); assert(an.detected.methods.length > 0 && an.detected.methods.every((m) => m.opens != null));
+  const anStatus = await get('/admin/api/analytics?days=14&status=Student%20%2F%20Fresher');
+  assert.strictEqual(anStatus.visitors.available, false, 'one "I am a" group hides the visitor side: a visitor has not answered it yet');
+  ok('the analytics API reports browsers / devices for everyone who opened the page (also with no registrations) next to the registered ones, and link opens per way of finding the source');
+
   /* ---- the page, in jsdom ---- */
   const jar = new CookieJar(); jar.setCookieSync(cookie + '; Path=/', base); const vc = new VirtualConsole(); const errs = []; vc.on('jsdomError', (e) => { if (!/Could not load link/.test(String(e.message))) errs.push(String(e.message).slice(0, 200)); });
   const dom = await JSDOM.fromURL(base + '/admin/analytics?days=14', { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, cookieJar: jar, virtualConsole: vc,
-    beforeParse(w) { w.fetch = (u, o = {}) => fetch(new URL(u, base), { ...o, headers: { ...(o.headers || {}), Cookie: cookie } }); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} })); } });
+    beforeParse(w) { w.fetch = pageFetch(base, cookie); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} })); } });
   const w = dom.window, d = w.document;
-  await until(() => d.querySelectorAll('#insights .fx-card').length >= 4); assert.strictEqual(d.querySelectorAll('#insights .fx-card').length, 4); assert(/Opened the form/.test(d.getElementById('insights').textContent) && /Where people come from/.test(d.getElementById('insights').textContent) && /IP and location quality/.test(d.getElementById('insights').textContent));
+  await until(() => d.querySelectorAll('#insights .fx-card').length >= 4);  assert.strictEqual(d.querySelectorAll('#insights .fx-card').length, 4); assert(/Opened the form/.test(d.getElementById('insights').textContent) && /Where people come from/.test(d.getElementById('insights').textContent) && /IP and location quality/.test(d.getElementById('insights').textContent));
   ok('the analytics page shows the visitor journey, devices, map and IP quality sections');
+  const cardByTitle = (t) => [...d.querySelectorAll('.fx-card')].find((c) => (c.querySelector('h2') || {}).textContent === t);
+  const bsplit = cardByTitle('Browsers'); const btxt = bsplit ? bsplit.textContent.replace(/\s+/g, ' ') : '';
+  assert(bsplit && /Chrome/.test(btxt) && /10 opened/.test(btxt) && /1 registered/.test(btxt), 'the Browsers card shows everyone who opened the page and the people who registered: ' + btxt.slice(0, 160));
+  const isplit = cardByTitle('Opened inside an app'); assert(isplit && /Instagram/.test(isplit.textContent) && /opened/.test(isplit.textContent) && /registered/.test(isplit.textContent));
+  assert(/opened/.test(cardByTitle('Traffic sources detected').textContent) && /registered/.test(cardByTitle('Traffic sources detected').textContent));
+  ok('Browsers, Opened inside an app and How the source was found show visitors and registrations side by side');
   const dots = d.querySelectorAll('.map-box .map-dot.reg'), unregDots = d.querySelectorAll('.map-box .map-dot.unreg'); assert.strictEqual(dots.length, 2); assert.strictEqual(unregDots.length, 3); assert(d.querySelector('.map-box path.map-land').getAttribute('d').length > 50000); assert(/Kochi/.test(dots[0].getAttribute('aria-label'))); assert(/^Registered/.test(dots[0].getAttribute('aria-label')) && /^Did not register/.test(unregDots[0].getAttribute('aria-label'))); ok('the map draws the bundled world outline (no outside requests); registered people (solid dots) and visitors who did not register (rings) are separate layers, one circle per city');
   await until(() => d.querySelectorAll('.map-box path.map-state').length >= 36);
   assert(d.querySelectorAll('.map-box path.map-state[data-country="IN"]').length === 36, 'all 36 Indian states and union territories are drawn');
@@ -93,10 +111,15 @@ async function until(fn, ms = 6000) { const t = Date.now(); while (Date.now() - 
   segBtns[1].dispatchEvent(new w.Event('click', { bubbles: true })); assert(/Mumbai/.test(d.querySelector('.map-box').closest('.fx-card').textContent) && /Dubai/.test(d.querySelector('.map-box').closest('.fx-card').textContent)); ok('the top countries / regions / cities lists switch between registered people and visitors who did not register');
   segBtns[0].dispatchEvent(new w.Event('click', { bubbles: true }));
   const svg = d.querySelector('.map-box svg'), vb0 = svg.getAttribute('viewBox'); const mapBtn = (t) => [...d.querySelectorAll('.map-tools button')].find((b) => b.textContent === t);
-  mapBtn('+').dispatchEvent(new w.Event('click', { bubbles: true })); const vb1 = svg.getAttribute('viewBox').split(' ').map(Number); assert(vb1[2] < Number(vb0.split(' ')[2])); mapBtn('World').dispatchEvent(new w.Event('click', { bubbles: true })); assert.strictEqual(svg.getAttribute('viewBox').split(' ').map(Number)[2], 1000); mapBtn('India').dispatchEvent(new w.Event('click', { bubbles: true })); assert(svg.getAttribute('viewBox').split(' ').map(Number)[2] < 200);
-  ok('map zoom: + zooms in, World shows everything, India zooms to India');
+  mapBtn('+').dispatchEvent(new w.Event('click', { bubbles: true })); const vb1 = svg.getAttribute('viewBox').split(' ').map(Number); assert(vb1[2] < Number(vb0.split(' ')[2])); mapBtn('World').dispatchEvent(new w.Event('click', { bubbles: true })); assert.strictEqual(svg.getAttribute('viewBox').split(' ').map(Number)[2], 1000);  mapBtn('India').dispatchEvent(new w.Event('click', { bubbles: true })); const vbIndia = svg.getAttribute('viewBox').split(' ').map(Number); assert(vbIndia[2] < 200);
+  const kochi = [((76.26 + 180) / 360) * 1000, ((90 - 9.93) / 180) * 500];                    // the map's own projection
+  assert(kochi[0] >= vbIndia[0] && kochi[0] <= vbIndia[0] + vbIndia[2] && kochi[1] >= vbIndia[1] && kochi[1] <= vbIndia[1] + vbIndia[3], 'India includes Kerala (Kochi), not just the north: ' + vbIndia.join(',') + ' vs ' + kochi.join(','));
+  ok('map zoom: + zooms in, World shows everything, India shows the whole country (Kerala to Kashmir)');
   dots[0].dispatchEvent(new w.Event('click', { bubbles: true })); assert(/Kochi, Kerala, India: 2 registered · 2 did not register/.test(d.querySelector('.map-tip').textContent)); ok('clicking a circle names the city and gives the numbers of both layers at that place');
-  const mapCardEl = d.querySelector('.map-box').closest('.fx-card'); [...mapCardEl.querySelectorAll('[data-fs]')][0].dispatchEvent(new w.Event('click', { bubbles: true })); assert(mapCardEl.classList.contains('fs-open') && d.documentElement.classList.contains('fs-lock'));
+  const mapCardEl = d.querySelector('.map-box').closest('.fx-card');
+  const perBtns = [...mapCardEl.querySelectorAll('.geo-period button')]; assert.deepStrictEqual(perBtns.map((b) => b.textContent), ['Today', 'Last 24 hours', 'Yesterday', 'Last 2 days', 'Last 7 days', 'Last 14 days', 'Last 30 days', 'Last 90 days', 'All time', 'Same as the page period']);
+  assert.strictEqual(perBtns.find((b) => b.getAttribute('aria-pressed') === 'true').textContent, 'Same as the page period', 'the map opens on the same period as the page');
+  [...mapCardEl.querySelectorAll('[data-fs]')][0].dispatchEvent(new w.Event('click', { bubbles: true })); assert(mapCardEl.classList.contains('fs-open') && d.documentElement.classList.contains('fs-lock'));
   d.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); assert(!mapCardEl.classList.contains('fs-open') && !d.documentElement.classList.contains('fs-lock')); ok('full screen opens a card over the page and Escape closes it');
 
   // line charts: zoom buttons + full screen exist and change what is drawn

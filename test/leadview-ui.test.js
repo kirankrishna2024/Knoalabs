@@ -3,6 +3,7 @@ process.env.LOG_LEVEL = 'silent'; process.env.RATE_LIMIT_MAX = '900'; process.en
 process.env.SESSION_SECRET = 'q'.repeat(40); process.env.ADMIN_LOGIN_MAX = '50';
 const assert = require('assert');
 const { JSDOM, CookieJar, VirtualConsole } = require('jsdom');
+const { pageFetch } = require('./fixtures/fetch');
 const { newDb } = require('pg-mem');
 const db = require('../src/db'); const migrate = require('../src/migrate'); const forms = require('../src/forms'); const campaigns = require('../src/campaigns');
 const { createApp, seedAdmin } = require('../server');
@@ -26,7 +27,7 @@ const until = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now()
     const jar = new CookieJar(); jar.setCookieSync(cookie + '; Path=/', base);
     const vc = new VirtualConsole(); const errs = []; vc.on('jsdomError', (e) => { if (!/Could not load link/.test(String(e.message))) errs.push(String(e.message).slice(0, 200)); });
     const dom = await JSDOM.fromURL(base + p, { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, cookieJar: jar, virtualConsole: vc,
-      beforeParse(w) { w.fetch = (u, o = {}) => fetch(new URL(u, base), { ...o, headers: { ...(o.headers || {}), Cookie: cookie } }); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; w.confirm = () => true; } });
+      beforeParse(w) { w.fetch = pageFetch(base, cookie); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; w.confirm = () => true; } });
     dom.errs = errs; return dom;
   };
   const dom = await open('/admin/analytics?days=7'), w = dom.window, d = w.document, click = (e) => e.dispatchEvent(new w.Event('click', { bubbles: true }));
@@ -41,7 +42,10 @@ const until = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now()
   click([...d.querySelectorAll('#detGrid .src-tile')].find((t) => /WhatsApp/.test(t.textContent)));
   sel.value = 'registered'; sel.dispatchEvent(new w.Event('change', { bubbles: true }));
   assert(await until(() => d.querySelectorAll('#lvTable tbody tr.lv-row').length === 1 && /WhatsApp/.test(d.querySelector('#lvTable tbody tr.lv-row').textContent) && /channel=WhatsApp/.test(w.location.search))); ok('clicking a source filters the page and the leads list together');
-  const per = await until(() => d.querySelectorAll('.geo-period button').length === 10 && [...d.querySelectorAll('.geo-period button')]); assert(per); assert.strictEqual(per.find((b) => b.getAttribute('aria-pressed') === 'true').textContent, 'Today', 'the map opens on Today'); assert(['Last 2 days', 'Last 30 days', 'All time'].every((x) => per.some((b) => b.textContent === x))); click(per.find((b) => /Today/.test(b.textContent)));
+  const per = await until(() => d.querySelectorAll('.geo-period button').length === 10 && [...d.querySelectorAll('.geo-period button')]); assert(per);
+  assert.strictEqual(per.find((b) => b.getAttribute('aria-pressed') === 'true').textContent, 'Same as the page period', 'the map opens on the same period as the page, so it never disagrees with the numbers above it');
+  assert.deepStrictEqual(per.map((b) => b.textContent), ['Today', 'Last 24 hours', 'Yesterday', 'Last 2 days', 'Last 7 days', 'Last 14 days', 'Last 30 days', 'Last 90 days', 'All time', 'Same as the page period'], 'the periods are in a fixed, readable order');
+  assert(['Last 2 days', 'Last 30 days', 'All time'].every((x) => per.some((b) => b.textContent === x))); click(per.find((b) => /Today/.test(b.textContent)));
   assert(await until(() => { const b = [...d.querySelectorAll('.geo-period button')].find((x) => /Today/.test(x.textContent)); return b && b.getAttribute('aria-pressed') === 'true'; })); ok('Where people come from has Today / Yesterday / Last 24 hours / 7 / 14 days / page period');
   /* zoom the map, then force a refresh with new data: the zoom must stay */
   const plus = [...d.querySelectorAll('.map-tools button')].find((b) => b.textContent === '+'); click(plus); click(plus); await new Promise((r) => setTimeout(r, 50));

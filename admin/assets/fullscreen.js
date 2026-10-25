@@ -21,7 +21,7 @@
 
   /* Every other graph (donuts, ranked bars, heatmap, funnel, tables ...) gets the same Full screen button automatically, plus + / - zoom while it is open.
      Cards that already carry their own button (line charts, the map) are left alone. Cards drawn later (the visitor insights) are picked up too. */
-  var SKIP = '.filterbar, .linkfind', VISUAL = 'svg, .rank, .heat, .heatmap, .funnel, .donut-row, table, canvas, .chart-wrap, .spark';
+  var SKIP = '.filterbar, .linkfind', VISUAL = 'svg, .rank, .browser-split, .heat, .heatmap, .funnel, .donut-row, table, canvas, .chart-wrap, .spark';
   function mk(text, label, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'kbtn sm'; b.textContent = text; b.setAttribute('aria-label', label); b.addEventListener('click', fn); return b; }
   function decorate(card) {
     if (card.querySelector('[data-fs]') || card.matches(SKIP) || !card.querySelector(VISUAL)) return;

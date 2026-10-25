@@ -3,6 +3,7 @@
 process.env.LOG_LEVEL = 'silent'; process.env.RATE_LIMIT_MAX = '500'; process.env.ADMIN_USERNAME = 'ui.admin'; process.env.ADMIN_PASSWORD = 'correct-horse-battery'; process.env.SESSION_SECRET = 'z'.repeat(40);
 const assert = require('assert');
 const { JSDOM, CookieJar, VirtualConsole } = require('jsdom');
+const { pageFetch } = require('./fixtures/fetch');
 const { newDb } = require('pg-mem');
 const db = require('../src/db'); const migrate = require('../src/migrate'); const forms = require('../src/forms');
 const { createApp, seedAdmin } = require('../server');
@@ -20,7 +21,7 @@ async function until(fn, ms = 5000) { const t = Date.now(); while (Date.now() - 
     const jar = new CookieJar(); jar.setCookieSync(cookie + '; Path=/', base);
     const vc = new VirtualConsole(); const errs = []; vc.on('jsdomError', (e) => { if (!/Could not load link/.test(String(e.message))) errs.push(String(e.message).slice(0, 200)); });   // the Google Fonts stylesheet cannot load in the sandbox
     const dom = await JSDOM.fromURL(base + p, { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, cookieJar: jar, virtualConsole: vc,
-      beforeParse(w) { w.fetch = (u, o = {}) => fetch(new URL(u, base), { ...o, headers: { ...(o.headers || {}), Cookie: cookie } }); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; w.confirm = () => true; } });
+      beforeParse(w) { w.fetch = pageFetch(base, cookie); w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}; w.confirm = () => true; } });
     dom.errs = errs; return dom;
   };
   const forms0 = (await api('GET', '/admin/api/forms')).forms, ds = forms0.find((f) => f.course_slug === 'datascience');

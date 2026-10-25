@@ -654,15 +654,19 @@
     state.sig = sig;
     renderKpis(d); renderSignals(d); renderCharts(); renderAdTable(d); renderMeta(d); renderMatrix(d.matrix); renderDayTable(d); renderHeat(d.heatmap); renderFeed(d.recent);
     syncFacets(d); renderTree(d); renderCampTable(d); renderDetected(d);
-    rank($('browsers'), d.browsers, (r) => r.name, 'No registrations in this period'); rank($('inAppList'), d.inApp, (r) => r.name, 'Nobody registered from an in-app browser in this period');
+    const vd = d.visitors || { available: false, browsers: [], inApp: [] };
+    // "I am a" is a filter on the person: a visitor has not answered it, so with that filter the visitor side is hidden
+    // (same rule as link opens) instead of showing numbers that do not belong to the selection.
+    splitRows($('browsers'), vd.available ? vd.browsers : null, d.browsers, 'No one with a known browser opened the page in this period.');
+    splitRows($('inAppList'), vd.available ? vd.inApp : null, d.inApp, 'Nobody opened the page inside an app in this period.');
     $('lvSub').textContent = 'The people behind the numbers for: ' + filterText(d) + ' · ' + w2(d) + '. With no filter selected, everyone is listed.'; lvSchedule(1500); formSchedule(2500);
     donut($('donutChannel'), $('dlegChannel'), d.channels.map((c, i) => ({ name: c.name, n: c.n, share: c.share, color: CHANNEL_COLORS[i % CHANNEL_COLORS.length] })), 'leads');
     donut($('donutCourse'), $('dlegCourse'), d.byCourse.map((c) => ({ name: c.course, n: c.n, share: c.share, color: colorFor(c.course_slug || NO_COURSE) })), 'leads');
     donut($('donutDevice'), $('dlegDevice'), d.devices.map((c) => ({ name: c.name, n: c.n, share: c.share, color: DEVICE_COLORS[c.name] || '#64748b' })), 'leads');
     rank($('campaigns'), d.campaigns, (r) => r.name); rank($('mediums'), d.mediums, (r) => r.name); rank($('countries'), d.countries, (r) => r.name);
-    rank($('stuCourse'), d.students.courses, (r) => r.name, 'No students in this period');
+    rank($('stuCourse'), d.students.courses, (r) => r.name, 'No student course answers in this period');
     rank($('stuYear'), d.students.statuses, (r) => r.name, ''); rank($('stuSpec'), d.students.specializations, (r) => r.name, ''); rank($('stuCollege'), d.colleges, (r) => r.name, '');
-    rank($('proRole'), d.professionals.roles, (r) => r.name, 'No professionals in this period');
+    rank($('proRole'), d.professionals.roles, (r) => r.name, 'No job role answers in this period');
     rank($('proExp'), d.professionals.experience, (r) => r.name, ''); rank($('proQual'), d.professionals.qualifications, (r) => r.name, '');
     $('main').setAttribute('aria-busy', 'false');
     document.title = (d.totals.window ? '(' + d.totals.window + ') ' : '') + 'Live Analytics | KnoaLabs Admin';
@@ -739,8 +743,33 @@
       b.addEventListener('click', () => { state.channel = state.channel === it.name ? '' : it.name; changed(); });
       grid.appendChild(b);
     });
-    rank($('detMethods'), det.methods, (r) => r.name, 'No registrations in this period');
+    const methodsOpened = det.methods.some((m) => m.opens != null) ? det.methods.map((m) => ({ name: m.name, n: m.opens || 0 })) : null;
+    splitRows($('detMethods'), methodsOpened, det.methods, 'No source could be detected in this period.');
     renderHosts(det.hosts || []);
+  }
+  /* Two numbers per row: everyone who opened the page and the people who registered. A browser, an app or a way of finding the
+     link that brings visitors but no registrations still appears (it used to be invisible because only leads were counted). */
+  function splitRows(host, opened, registered, empty) {
+    host.textContent = '';
+    const showOpened = Array.isArray(opened);
+    const map = new Map();
+    (opened || []).forEach((r) => { const e = map.get(r.name) || { name: r.name, opens: 0, n: 0 }; e.opens += r.n; map.set(r.name, e); });
+    (registered || []).forEach((r) => { const e = map.get(r.name) || { name: r.name, opens: 0, n: 0 }; e.n += r.n; map.set(r.name, e); });
+    const rows = [...map.values()].sort((a, b) => (b.opens + b.n) - (a.opens + a.n) || a.name.localeCompare(b.name));
+    if (!rows.length) { host.appendChild(el('div', 'muted small-note', empty || 'Nothing in this period.')); return; }
+    const max = Math.max.apply(null, rows.map((r) => Math.max(r.opens, r.n))) || 1;
+    const leg = el('div', 'hg-legend'), keys = showOpened ? [['hg-o', 'Opened the page'], ['hg-r', 'Registered']] : [['hg-r', 'Registered']];
+    keys.forEach((x) => { const s = el('span'); s.appendChild(el('i', x[0])); s.appendChild(document.createTextNode(x[1])); leg.appendChild(s); });
+    host.appendChild(leg);
+    rows.forEach((r) => {
+      const row = el('div', 'hg-row static'), top = el('span', 'hg-top');
+      top.appendChild(el('span', 'hg-name', r.name));
+      const pct = showOpened && r.opens && r.n <= r.opens ? ' · ' + (Math.round((r.n / r.opens) * 1000) / 10) + '%' : '';
+      top.appendChild(el('span', 'hg-num', showOpened ? num(r.opens) + ' opened · ' + num(r.n) + ' registered' + pct : num(r.n) + ' registered'));
+      row.appendChild(top);
+      (showOpened ? [[r.opens, 'hg-o'], [r.n, 'hg-r']] : [[r.n, 'hg-r']]).forEach(([v, cls]) => { const bar = el('span', 'hg-bar'), i = el('i', cls); i.style.width = (v ? Math.max(2, (v / max) * 100) : 0) + '%'; bar.appendChild(i); row.appendChild(bar); });
+      host.appendChild(row);
+    });
   }
   /* Websites that sent visitors: a real bar graph, link opens and registrations side by side for every referring site / redirect (t.co, l.instagram.com ...). Click one to filter the page to its source. */
   function renderHosts(list) {

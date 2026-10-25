@@ -66,6 +66,14 @@ check '/admin/api/forms' 401
 check '/admin/api/courses' 401
 check '/admin/api/campaigns' 401
 check '/admin/api/analytics' 401
+check '/admin/api/analytics/fields' 401
+check '/admin/api/analytics/leads' 401
+check '/admin/api/analytics/leads.xlsx' 401
+check '/admin/api/insights' 401
+check '/admin/api/link-lookup' 401
+check '/admin/assets/analytics.css' 200
+check '/admin/assets/fullscreen.js' 200
+check '/admin/assets/insights.js' 200
 check '/admin/api/leads' 401
 check '/admin/api/me' 401
 check '/admin/api/stats' 401

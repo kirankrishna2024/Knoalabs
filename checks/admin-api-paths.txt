@@ -3,6 +3,12 @@ Admin API path coverage (expect 401 without a session)
 api/stats
 api/analytics
 api/insights
+api/insights?geo=page
+api/insights?geo=today&days=7&course=datascience
+api/analytics/fields
+api/analytics/leads?kind=all&pageSize=25
+api/analytics/leads.xlsx?kind=unregistered
+api/link-lookup?url=https://example.com/datascience?utm_source=meta
 api/filters
 api/me
 api/leads
@@ -50,6 +56,9 @@ admin/assets/forms.js
 admin/assets/studio.css
 admin/assets/dashboard.js
 admin/assets/analytics.js
+admin/assets/analytics.css
+admin/assets/fullscreen.js
+admin/assets/insights.js
 admin/assets/campaigns.js
 admin/assets/qr.js
 admin/assets/admin.css

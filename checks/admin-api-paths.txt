@@ -1,0 +1,91 @@
+Admin API path coverage (expect 401 without a session)
+
+api/stats
+api/analytics
+api/insights
+api/filters
+api/me
+api/leads
+api/leads.xlsx
+api/courses
+api/courses/:id
+api/courses/nonexistent
+api/courses/1%20OR%201=1
+api/forms
+api/forms/:id
+api/forms/999
+api/forms/:id/versions
+api/forms/:id/versions/1
+api/forms/:id/versions/999
+api/forms/:id/diff
+api/forms/:id/diff?from=1&to=1
+api/forms/:id/diff?from=a&to=b
+api/forms/:id/links
+api/forms/:id/links/:linkId
+api/forms/:id/links/999
+api/campaigns
+api/campaigns/:id
+api/campaigns/999
+api/campaigns/:id/status
+api/audit
+api/leads/:id
+api/leads/:id/related
+api/leads/999/related
+api/leads/abc
+api/leads/1%20OR%201=1
+
+Admin GET pages (expect 302 without a session):
+/
+/analytics
+/forms
+/forms/:id
+/forms/:id/preview
+/campaigns
+/qr
+/login
+
+Admin assets expected to exist:
+admin/assets/kit.js
+admin/assets/forms.js
+admin/assets/studio.css
+admin/assets/dashboard.js
+admin/assets/analytics.js
+admin/assets/campaigns.js
+admin/assets/qr.js
+admin/assets/admin.css
+admin/assets/links.css
+admin/assets/campaigns.css
+admin/assets/builder.js
+admin/assets/links.js
+
+Admin assets that should 404:
+admin/assets/nonexistent.js
+admin/assets/../views/dashboard.html
+
+Public API behavior to confirm with curl:
+GET /api/forms/:path for a known form -> 200
+GET /api/forms/:path for a missing path -> 404
+POST /api/leads with valid body -> 200 or 201
+POST /api/leads with invalid body -> 422
+POST /api/leads with empty body -> 400 or 422
+POST /api/leads with non-JSON body -> 415
+
+Form Studio model-level rules to confirm with the live admin session:
+PATCH /admin/api/forms/:id with an invalid status -> 422
+PATCH /admin/api/forms/:id with status=active on a draft with no published version -> 422
+PATCH /admin/api/forms/:id with status=archived on a published form -> 200
+PATCH /admin/api/forms/:id with nothing to change -> 422
+POST /admin/api/forms/:id/publish with no draft -> 422
+POST /admin/api/forms/:id/publish with an invalid draft -> 422
+POST /admin/api/forms/:id/restore with an invalid version -> 404
+POST /admin/api/forms/:id/rollback with an invalid version -> 404
+POST /admin/api/forms/:id/rollback with an invalid definition -> 422
+PUT /admin/api/forms/:id/draft with no definition -> 422
+DELETE /admin/api/forms/:id/draft on a form with no draft -> 200
+POST /admin/api/forms with a duplicate name -> 409
+POST /admin/api/forms with a reserved name -> 422
+DELETE /admin/api/leads/:id for a nonexistent lead -> 404
+DELETE /admin/api/courses/:slug for a default course -> 400
+DELETE /admin/api/courses/:slug for an unknown slug -> 404
+POST /admin/api/campaigns with a duplicate tag -> 409
+POST /admin/api/campaigns with missing form -> 422

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KnoaLabs UI model</title>
+<style>
+:root{--ink:#0D201F;--green:#20C285;--text:#0D201F;--muted:#6b7280;--bad:#d64545;--line:#d5dcdf;--soft:#eef2f1;--panel:#f3f6f5;--card:#e3e8e7;--grad:linear-gradient(90deg,#1b2121,#0E2C2B 35%,#065f4e 75%,#00735c);--r:12px}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--text);background:var(--soft)}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}h1{margin:0 0 4px;font-size:1.8rem}h2{margin:36px 0 12px;font-size:1.15rem}p.lead{margin:0;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--card);border-radius:18px;padding:20px}.row{display:grid;gap:14px}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.sw{height:56px;border-radius:12px;border:1px solid var(--card);display:flex;align-items:flex-end;padding:6px 8px;font-size:.72rem;font-weight:600}.sw.dk{color:#fff}
+code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.82rem}small{color:var(--muted)}
+/* components, same values as public/ui.css */
+.lbl{display:block;font-weight:600;font-size:.88rem;margin:0 0 7px}.lbl i{color:var(--bad);font-style:normal}.lbl small{font-weight:500;font-size:.78rem}
+.ctl{width:100%;height:50px;padding:0 15px;border:1px solid var(--line);border-radius:var(--r);background:#fff;font:500 16px/1.2 inherit;color:var(--text);display:flex;align-items:center;justify-content:space-between}
+.ctl.sm{height:42px;font-size:15px}.ctl.ph{color:#98a2a8}.ctl.focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(32,194,133,.22)}.ctl.bad{border-color:var(--bad)}
+.ctl svg{width:12px;height:8px;fill:none;stroke:var(--text);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pill{display:inline-flex;align-items:center;min-height:44px;padding:9px 18px;border:1px solid var(--line);border-radius:999px;font-weight:600;font-size:.9rem;background:#fff;margin:0 8px 8px 0}.pill.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:8px 8px 8px 24px;border-radius:999px;background:var(--ink);color:#fff;font-weight:600}.btn.hov{background:var(--green)}.btn b{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center}
+.err{color:var(--bad);font-size:.84rem;font-weight:500;margin-top:6px}.banner{background:#fdecec;color:#9b2c2c;border:1px solid #f2c9c9;border-radius:12px;padding:12px 16px;font-weight:600;font-size:.93rem}
+.stat{border:1px solid var(--card);border-top:3px solid var(--ink);border-radius:18px;padding:16px 18px;background:#fff}.stat.a{border-top-color:var(--green)}.stat small{display:block;font-weight:600}.stat b{font-size:2rem;line-height:1.1}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.78rem;font-weight:700;background:var(--soft)}.tag.pro{background:var(--ink);color:#fff}
+/* breakpoint frames: schematic, drawn with the same tokens */
+.dev{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}.frame{border:8px solid var(--ink);border-radius:26px;overflow:hidden;background:var(--grad);padding:10px}.frame.t{border-radius:18px}.frame.l{border-radius:12px}
+.frame .top{height:14px;border-radius:7px;background:rgba(255,255,255,.18);margin-bottom:8px}.sheet{background:#fff;border-radius:14px;padding:10px;display:grid;gap:6px}
+.bx{height:18px;border-radius:6px;background:var(--soft);border:1px solid var(--line)}.bx.h{height:26px;background:var(--ink);border-color:var(--ink)}.bx.g{background:var(--green);border-color:var(--green)}.bx.p{height:50px;background:var(--panel)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.dash{background:var(--soft);border-radius:12px;padding:8px;display:grid;gap:6px}
+.cap{margin:8px 0 0;font-size:.82rem;color:var(--muted);max-width:260px}
+/* dashboard pieces (same values as admin/assets/admin.css) */
+.stats4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.trend{display:flex;align-items:flex-end;gap:6px;height:92px}
+.trend .b{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+.trend .b i{display:block;width:100%;max-width:22px;background:var(--ink);border-radius:6px 6px 2px 2px;min-height:3px}
+.trend .b:first-child i{background:var(--green)}
+.trend .b u{font-size:.6rem;color:var(--muted);text-decoration:none;white-space:nowrap}
+.rankrow{display:grid;gap:5px}
+.ranktop{display:flex;justify-content:space-between;gap:10px;font-size:.88rem;font-weight:600}
+.rankbar{height:7px;background:var(--soft);border-radius:99px;overflow:hidden}
+.rankbar i{display:block;height:100%;background:var(--ink);border-radius:99px}
+.rankrow:first-child .rankbar i{background:var(--green)}
+.toolbar{display:grid;grid-template-columns:2fr 1.2fr 1.2fr auto;gap:10px;align-items:end}
+.toolbar>*{min-width:0}                 /* dropdowns never get pushed out of the card (ellipsised value) */
+.toolbar .ctl.sm{width:100%}
+.ghost{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border:1px solid var(--line);background:#fff;border-radius:999px;font:600 .88rem/1 inherit;color:var(--text)}
+.live{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--card);border-radius:999px;background:#fff;font-weight:600;font-size:.84rem}
+.live i{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(32,194,133,.18)}
+.mini2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}td,th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--card)}th{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+</style></head><body><div class="wrap">
+<h1>KnoaLabs UI model</h1><p class="lead">One design language for the registration form, sign-in, leads dashboard and live analytics. Source of truth: <code>public/ui.css</code>.</p>
+
+<h2>1. Colour and type</h2>
+<div class="row g4">
+ <div class="sw dk" style="background:var(--ink)">Ink #0D201F · buttons, selected pills</div><div class="sw" style="background:var(--green)">Green #20C285 · hover fill, accents</div>
+ <div class="sw" style="background:var(--soft)">Soft #eef2f1 · dashboard page</div><div class="sw" style="background:var(--panel)">Panel #f3f6f5 · form sub-panels</div>
+ <div class="sw" style="background:var(--line)">Line #d5dcdf · input borders</div><div class="sw dk" style="background:var(--bad)">Error #d64545</div>
+ <div class="sw dk" style="background:var(--grad)">Brand gradient · page + top bar</div><div class="sw" style="background:#fff">Text #0D201F · muted #6b7280</div>
+</div>
+<p class="lead" style="margin-top:10px">Font: Urbanist (400–700). Inputs 16px (stops iOS zoom), labels 0.88rem / 600, headings 700 with -0.015em tracking.</p>
+
+<h2>2. Controls: identical on the form and the dashboards</h2>
+<div class="row g2">
+ <div class="card"><span class="lbl">Highest qualification <small>(optional)</small></span>
+  <div class="ctl ph">Select qualification <svg viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"/></svg></div><p class="cap">Dropdown, form size: <code>.control</code> 50px, radius 12px, grey placeholder, chevron right.</p>
+  <span class="lbl" style="margin-top:14px">Master class</span><div class="ctl sm">All master classes <svg viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"/></svg></div><p class="cap">Same dropdown, toolbar size: <code>.control.sm</code> 42px. Same border, radius, chevron, focus ring.</p></div>
+ <div class="card"><span class="lbl">Mobile Number / WhatsApp <i>*</i></span><div class="ctl focus">98765 43210</div>
+  <span class="lbl" style="margin-top:14px">Email Address <small>(optional)</small></span><div class="ctl bad">name@</div><div class="err">Enter a valid email address</div>
+  <div class="banner" style="margin-top:14px">We couldn't send your details. Please try again.</div><p class="cap">Focus = black border + green ring. Error = red border + message. Banner is red on every page.</p></div>
+ <div class="card"><span class="lbl">Total work experience <i>*</i></span><span class="pill">0–2 yrs</span><span class="pill on">2–5 yrs</span><span class="pill">5–10 yrs</span><span class="pill">10+ yrs</span>
+  <div style="display:grid;gap:10px;margin-top:10px"><div class="btn">Register now <b>↗</b></div><div class="btn hov">Register now (hover) <b>↗</b></div></div></div>
+ <div class="card"><div class="row" style="grid-template-columns:1fr 1fr"><div class="stat a"><small>Total leads</small><b>128</b></div><div class="stat"><small>Today</small><b>6</b></div></div>
+  <table style="margin-top:12px"><tr><th>Name</th><th>I am a</th></tr><tr><td>Asha Nair</td><td><span class="tag">Student / Fresher</span></td></tr><tr><td>Ravi Kumar</td><td><span class="tag pro">Working Professional</span></td></tr></table></div>
+</div>
+
+<h2>3. Responsive behaviour</h2>
+<div class="dev">
+ <div><div class="frame" style="width:170px"><div class="top"></div><div class="sheet"><div class="bx h"></div><div class="bx"></div><div class="bx"></div><div class="bx"></div><div class="bx p"></div><div class="bx g"></div></div></div><p class="cap"><b>Phone</b> (form &lt; 520px, dashboard &lt; 720px) · form: one column, "I am a" cards stack, pills 2-up. Dashboard: counts 2×2, rows become labelled cards, filters 2-up, Clear full width.</p></div>
+ <div><div class="frame t" style="width:300px"><div class="top"></div><div class="sheet"><div class="bx h"></div><div class="two"><div class="bx"></div><div class="bx"></div></div><div class="bx"></div><div class="two"><div class="bx p"></div><div class="bx p"></div></div><div class="bx g"></div></div></div><p class="cap"><b>Tablet</b> (form 520px+, dashboard 720–1100px) · form: centred 640px card, names side by side, pills 4-up. Dashboard: counts 4-up, charts 2-up, filters 3-up, table scrolls sideways if needed.</p></div>
+ <div><div class="frame l" style="width:430px"><div class="top"></div><div class="dash"><div class="four"><div class="bx h"></div><div class="bx h"></div><div class="bx h"></div><div class="bx h"></div></div><div class="two" style="grid-template-columns:1.5fr 1fr 1fr"><div class="bx p"></div><div class="bx p"></div><div class="bx p"></div></div><div class="sheet"><div class="bx"></div><div class="bx"></div><div class="bx"></div></div></div></div><p class="cap"><b>Laptop &gt; 1100px</b> · dashboard at full width (max 1280px): 4 counts, 14-day chart + two rankings, one-row filters, full table. Form stays one centred card.</p></div>
+</div>
+
+<h2>4. Dashboard pieces (leads + live analytics)</h2>
+<p class="lead">What the admin sees at <code>/admin</code>: counts first, then the 14-day trend, then the two rankings, then the filter toolbar and the table. Numbers arrive from <code>/admin/api/stats</code> and are retried twice on their own; only a failure that persists shows the red banner with <b>Try again</b> — a count is never silently left at <code>–</code>.</p>
+<div class="row g2">
+ <div class="card"><span class="lbl">Counts</span>
+  <div class="stats4">
+   <div class="stat a"><small>Total leads</small><b>128</b></div>
+   <div class="stat"><small>Today</small><b>12</b></div>
+   <div class="stat"><small>Last 7 days</small><b>33</b></div>
+   <div class="stat"><small>Last 30 days</small><b>64</b></div>
+  </div>
+  <p class="cap">Four cards, one row (2×2 on the phone): white, 1px line, 18px radius, 3px top rule — first card green, the rest ink. Label 0.82rem muted, number ~2.4rem.</p>
+  <span class="lbl" style="margin-top:14px">Last 14 days</span>
+  <div class="trend">
+   <div class="b"><i style="height:26px"></i><u>02/10</u></div><div class="b"><i style="height:14px"></i><u>03/10</u></div>
+   <div class="b"><i style="height:8px"></i><u>04/10</u></div><div class="b"><i style="height:34px"></i><u>05/10</u></div>
+   <div class="b"><i style="height:18px"></i><u>06/10</u></div><div class="b"><i style="height:58px"></i><u>07/10</u></div>
+   <div class="b"><i style="height:22px"></i><u>08/10</u></div><div class="b"><i style="height:3px"></i><u>09/10</u></div>
+   <div class="b"><i style="height:40px"></i><u>10/10</u></div><div class="b"><i style="height:30px"></i><u>11/10</u></div>
+   <div class="b"><i style="height:52px"></i><u>12/10</u></div><div class="b"><i style="height:26px"></i><u>13/10</u></div>
+   <div class="b"><i style="height:10px"></i><u>14/10</u></div><div class="b"><i style="height:76px"></i><u>15/10</u></div>
+  </div>
+  <p class="cap">Bars scale to 78px, 6px apart, hover turns green, tooltip shows the exact day. Month/day under each bar on desktop, hidden on the phone.</p></div>
+
+ <div class="card"><span class="lbl">I am a &nbsp;·&nbsp; By master class</span>
+  <div class="rankrow"><div class="ranktop"><span>Student / Fresher</span><span>42</span></div><div class="rankbar"><i style="width:100%"></i></div></div>
+  <div class="rankrow" style="margin-top:12px"><div class="ranktop"><span>Working Professional</span><span>22</span></div><div class="rankbar"><i style="width:52%"></i></div></div>
+  <div class="rankrow" style="margin-top:14px"><div class="ranktop"><span>Cyber Security</span><span>13</span></div><div class="rankbar"><i style="width:100%"></i></div></div>
+  <div class="rankrow" style="margin-top:12px"><div class="ranktop"><span>Data Science</span><span>13</span></div><div class="rankbar"><i style="width:100%"></i></div></div>
+  <p class="cap">Label left / count right over a 7px track; top row green. Long master-class names ellipsise instead of pushing the card wider.</p>
+  <span class="lbl" style="margin-top:14px">Statuses</span>
+  <div><span class="tag">Student / Fresher</span> <span class="tag pro">Working Professional</span></div>
+  <p class="cap">Tags repeat the same two values inside the table, so the ranking and the rows speak one language.</p></div>
+</div>
+
+<div class="card" style="margin-top:14px"><span class="lbl">Filter toolbar</span>
+ <div class="toolbar">
+  <div class="ctl sm" style="color:#98a2a8">Search name, mobile, email, college, company</div>
+  <div class="ctl sm">All (I am a) <svg viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"/></svg></div>
+  <div class="ctl sm">All master classes <svg viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"/></svg></div>
+  <span class="ghost">Clear</span>
+ </div>
+ <div class="mini2" style="margin-top:10px">
+  <div><span class="lbl" style="margin-bottom:4px">Live analytics</span><span class="live"><i></i>Live · updated just now</span> <span class="ghost">Pause</span></div>
+  <div><span class="lbl" style="margin-bottom:4px">A request failed</span><div class="banner">Could not load the counts. <b>Try again</b></div></div>
+ </div>
+ <p class="cap">Toolbar size everywhere: <code>.control.sm</code> 42px, 10px gaps, one row on the laptop, 2-up on the phone, Clear full width. Grid children get <code>min-width:0</code> so a long option list can never push a control past the card edge (it ellipsises instead) — the dropdown itself is the native one and always opens above the page.</p>
+</div>
+</div></body></html>

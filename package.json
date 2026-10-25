@@ -1,0 +1,40 @@
+{
+  "name": "knoalabs-masterclass",
+  "version": "3.13.0",
+  "description": "KnoaLabs master class registration (Express + PostgreSQL) with a login-protected admin panel, course-link manager and link-open counting, live ad analytics with master class / campaign / channel drill-down, QR generator, link search",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "local": "node scripts/local.js",
+    "dev": "node --watch server.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js status",
+    "admin:set": "node scripts/admin.js",
+    "test": "node test/validate.test.js && node test/analytics.test.js && node test/campaign.test.js && node test/visits.test.js && node test/meta.test.js && node test/db.test.js && node test/migrate.test.js && node test/leads.test.js && node test/admin.test.js && node test/production.test.js && node test/ui.test.js && node test/qr.test.js && node test/builder.test.js && node test/pages.test.js && node test/formdef.test.js && node test/sources.test.js && node test/geo.test.js && node test/forms.test.js && node test/studio.test.js && node test/studio-ui.test.js && node test/insights.test.js && node test/leadview.test.js && node test/leadview-ui.test.js && node test/dynamic-form.test.js && node test/fixes.test.js",
+    "stop": "node scripts/stop.js",
+    "db:check": "node scripts/dbcheck.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "helmet": "^7.2.0",
+    "pg": "^8.12.0",
+    "pino": "^9.14.0",
+    "pino-http": "^10.5.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3",
+    "jsqr": "^1.4.0",
+    "pg-mem": "^3.0.5",
+    "sortablejs": "^1.15.7",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

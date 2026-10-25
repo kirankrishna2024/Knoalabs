@@ -1,0 +1,71 @@
+# DigitalOcean App Platform spec for KnoaLabs Master Class.
+#
+# 1. Replace github.repo (OWNER/REPO) and, if your database is not in Bangalore, `region`.
+# 2. Create the app:   doctl apps create --spec .do/app.yaml      (or paste into  Apps > Create > Import App Spec)
+# 3. Fill the SECRET values in  Settings > App-Level Environment Variables  (they are never stored in git).
+#
+# Database: either attach a DO managed database (uncomment `databases:` and the ${db.DATABASE_URL} line below), or keep the
+# DATABASE_URL secret and paste the value from  Databases > Connection details  (DIRECT port 25060, not the pool). No CA certificate is needed.
+name: knoalabs-masterclass
+region: blr1
+
+# Schema changes run once, BEFORE the new version receives traffic. If a migration fails, the deploy fails and the
+# running version keeps serving. (The web service therefore starts with AUTO_MIGRATE=false.)
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    dockerfile_path: Dockerfile
+    github:
+      repo: OWNER/REPO
+      branch: main
+      deploy_on_push: true
+    run_command: node scripts/migrate.js
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 1
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    github:
+      repo: OWNER/REPO
+      branch: main
+      deploy_on_push: true
+    http_port: 8080
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    # Keep at 1: rate limits are held in memory per instance. For more instances add a shared limit at the edge first.
+    instance_count: 1
+    routes:
+      - path: /
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 15
+      period_seconds: 10
+      timeout_seconds: 4
+      success_threshold: 1
+      failure_threshold: 3
+
+# Shared by the web service and the migrate job.
+envs:
+  - { key: NODE_ENV,             value: production }
+  - { key: PORT,                 value: "8080" }
+  - { key: TIMEZONE,             value: Asia/Kolkata }
+  - { key: LOG_LEVEL,            value: info }
+  # App Platform: X-Forwarded-For is DigitalOcean's ingress, the visitor is in do-connecting-ip. Without this every
+  # visitor shares ONE rate limit and the site answers 429 after RATE_LIMIT_MAX registrations in 10 minutes.
+  - { key: TRUST_PROXY,          value: "1" }
+  - { key: CLIENT_IP_HEADER,     value: do-connecting-ip }
+  - { key: AUTO_MIGRATE,         value: "false" }
+  - { key: DATABASE_POOL_MAX,    value: "10" }
+  - { key: RATE_LIMIT_MAX,       value: "10" }
+  - { key: DATABASE_URL,         type: SECRET, scope: RUN_AND_BUILD_TIME }
+  - { key: SESSION_SECRET,       type: SECRET, scope: RUN_TIME }
+  - { key: ADMIN_USERNAME,       type: SECRET, scope: RUN_TIME }
+  - { key: ADMIN_PASSWORD,       type: SECRET, scope: RUN_TIME }
+
+# Optional: let App Platform create and wire a database (then drop the DATABASE_URL secret above and use
+#   - { key: DATABASE_URL,    scope: RUN_AND_BUILD_TIME, value: "${db.DATABASE_URL}" }
+# databases:
+#   - name: db
+#     engine: PG
+#     version: "16"
+#     production: false

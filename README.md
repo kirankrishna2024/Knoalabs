@@ -303,7 +303,7 @@ Security hygiene: if a `.env` with real values was ever shared or zipped, rotate
 
 ## Checking which build is live
 
-`GET /ready` returns `{"ok":true,"db":"up","version":"4.0.0"}`. If the live site shows an older version (or no `version`), it is running an old deploy: redeploy, then reload with a hard refresh. If the admin dashboard shows an error banner, it names the failing request and its HTTP status.
+`GET /ready` returns `{"ok":true,"db":"up","version":"3.14.1"}`. If the live site shows an older version (or no `version`), it is running an old deploy: redeploy, then reload with a hard refresh. Every script and stylesheet the admin pages link ends in `?v=<version>`; view the page source and check that stamp against `/ready` — if it differs, that browser is holding an old release (the assets are cached for a long time, so only a changed URL forces the current ones). If the admin dashboard shows an error banner, it names the failing request and its HTTP status.
 
 ## Known limits
 

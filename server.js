@@ -128,8 +128,14 @@ function createApp() {
     }
   }));
   /* /admin assets are timestamped releases; cache them aggressively but keep the etag so a forced reload stays possible.
-     This avoids a stale copy from a prior deploy being used after the process restarts on a new image. */
-  app.use('/admin/assets', express.static(adminAssets, { index: false, maxAge: 604800000, etag: true }));
+     The stamp (?v=<version>, added to every /admin/assets URL by sendPage in src/admin.js) is what makes a deploy safe:
+     an unstamped request must revalidate, or a browser or CDN keeps the copy from an older release. */
+  const adminAssetHeaders = (res) => {
+    const req = res.req;
+    const stamped = Boolean(req && req.query && req.query.v === VERSION);
+    res.setHeader('Cache-Control', stamped ? 'public, max-age=31536000, immutable' : 'no-cache');
+  };
+  app.use('/admin/assets', express.static(adminAssets, { index: false, maxAge: 604800000, etag: true, setHeaders: adminAssetHeaders }));
 
   /* ---- public JSON API: POST /api/leads (the form) and POST /api/visit (link-open counter) ---- */
   app.use('/api', express.json({ limit: '20kb' }));

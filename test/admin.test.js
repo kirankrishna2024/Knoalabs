@@ -145,6 +145,15 @@ const time = require('../src/time');
   r = await fetch(base + '/admin/analytics', { headers: C }); assert.strictEqual(r.status, 200); const an = await r.text();
   assert(an.includes('Live analytics') && an.includes('id="chartCourse"') && an.includes('id="segStatus"') && an.includes('id="chipCourse"') && an.includes('id="winDays"')); assert.strictEqual(r.headers.get('cache-control'), 'no-store'); ok('live analytics page renders: I-am-a filter, master class chips, period, line charts; never cached');
   assert.strictEqual((await fetch(base + '/admin/assets/analytics.js')).status, 200); assert.strictEqual((await fetch(base + '/admin/analytics.html')).status, 404); ok('analytics.js is served; analytics.html is only reachable through the signed-in route');
+  /* every /admin/assets URL carries ?v=<version>: the assets are cached hard (10 years), so without the stamp a
+     browser or CDN keeps the release it first saw and a deploy hands the admin NEW html with OLD javascript. */
+  const VER = require('../package.json').version, stamp = '?v=' + VER;
+  const assetUrls = [...an.matchAll(/(?:src|href)="(\/admin\/assets\/[^"]+)"/g)].map((m) => m[1]);
+  assert(assetUrls.length >= 3, 'the analytics page links its assets');
+  assert(assetUrls.every((u) => u.endsWith(stamp)), 'every asset URL is stamped with this release: ' + assetUrls.join(', '));
+  const stamped = await fetch(base + assetUrls[0]); assert.strictEqual(stamped.status, 200); assert.strictEqual(stamped.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+  const bare = await fetch(base + '/admin/assets/analytics.js'); assert.strictEqual(bare.status, 200); assert.strictEqual(bare.headers.get('cache-control'), 'no-cache');
+  ok('admin assets are linked with ?v=<version> (immutable) and revalidate when the stamp is missing, so a deploy can never serve stale scripts');
   assert.deepStrictEqual(st.courses.map((c) => c.slug), ['datascience', 'cybersecurity', 'generativeai', '__none']); ok('leads dashboard filter lists every master class even before it has a lead');
 
   /* ---- master classes: add, link, use, delete ---- */

@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const config = require('./config');
 const log = require('./logger');
@@ -35,12 +36,36 @@ const PAGE_CSP = [
 ].join('; ');
 
 const noStore = (res) => res.set('Cache-Control', 'no-store');
+
+/* Admin pages are served no-store, so the HTML is always current, but every asset below it is cached hard
+   (see the /admin/assets static mount). Without a version in the URL the browser and the CDN keep the copy from the
+   release they first saw for up to ten years, so a deploy gives the admin NEW html with OLD javascript: the markup for a
+   panel that the old script never fills ("nothing but the text"), a button bar drawn the old way over the card, and a
+   control the old script never binds. Every /admin/assets URL therefore carries ?v=<version> the same way the public
+   pages do: a release changes the URL, so a stale copy can never be picked up. */
+const { version: VERSION } = require('../package.json');
+const ASSET_STAMP = '?v=' + encodeURIComponent(VERSION);
+/** Cache-Control for an admin asset: immutable when the URL carries this release's stamp, always revalidate otherwise. */
+function assetHeaders(res) {
+  const req = res.req;
+  const stamped = Boolean(req && req.query && req.query.v === VERSION);
+  res.setHeader('Cache-Control', stamped ? 'public, max-age=31536000, immutable' : 'no-cache');
+}
+const pages = new Map();
+function pageHtml(file) {
+  let html = pages.get(file);
+  if (html === undefined) {
+    html = fs.readFileSync(path.join(VIEWS, file), 'utf8').replace(/(\/admin\/assets\/[A-Za-z0-9._/-]+)/g, (m) => m + ASSET_STAMP);
+    pages.set(file, html);
+  }
+  return html;
+}
 /** The studio embeds its own preview page in a frame; the preview may only be framed by the admin itself. */
 const STUDIO_CSP = PAGE_CSP.replace("default-src 'none'", "default-src 'none'; frame-src 'self'");
 const PREVIEW_CSP = PAGE_CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'");
 const sendPage = (res, file, csp = PAGE_CSP) => {
   res.set({ 'Content-Security-Policy': csp, 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' });
-  res.sendFile(path.join(VIEWS, file));
+  res.type('html').send(pageHtml(file));
 };
 
 function createAdminRouter() {
@@ -91,7 +116,7 @@ function createAdminRouter() {
     res.type('js').send('window.KNOA_CONFIG = ' + JSON.stringify(cfg) + ';');
   });
 
-  router.use('/assets', express.static(ASSETS, { index: false, maxAge: 604800000, etag: true }));
+  router.use('/assets', express.static(ASSETS, { index: false, maxAge: 604800000, etag: true, setHeaders: assetHeaders }));
 
   /* ---------- browser config (generated: master classes / countries / settings, no DB query for the lists) ---------- */
   router.get('/config.js', (req, res) => {

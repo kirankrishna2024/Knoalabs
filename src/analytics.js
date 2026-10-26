@@ -180,7 +180,7 @@ function detectedPanel(det, detMethods, opensAvailable, conv, hostMap = new Map(
     conversionPct: opensAvailable ? conv(o.n, o.opens) : null, methods: top(o.methods, 5).map((m) => ({ key: m.name, name: METHOD_NAMES[m.name] || m.name, n: m.n })), hosts: top(o.hosts, 4) }))
     .filter((o) => o.n || o.opens || ALWAYS_SHOWN.includes(o.name))
     .sort((a, b) => b.n - a.n || (b.opens || 0) - (a.opens || 0) || a.name.localeCompare(b.name));
-  const REDIRECTORS = /^(l|lm|m|t|out|away|go|link|links|redirect|r)\.|^(t\.co|bit\.ly|lnkd\.in|goo\.gl|tinyurl\.com|linktr\.ee|wa\.me|fb\.me|ig\.me|youtu\.be|rebrand\.ly|cutt\.ly|is\.gd|ow\.ly|buff\.ly|shorturl\.at)$/i;
+  const REDIRECTORS = /^(l|lm|m|out|away|go|link|links|redirect|r)\.|^(t\.co|bit\.ly|lnkd\.in|goo\.gl|tinyurl\.com|linktr\.ee|wa\.me|fb\.me|ig\.me|youtu\.be|rebrand\.ly|cutt\.ly|is\.gd|ow\.ly|buff\.ly|shorturl\.at)$/i;
   const hosts = [...hostMap].map(([name, o]) => ({ name, n: o.n, opens: opensAvailable ? o.opens : null, conversionPct: opensAvailable ? conv(o.n, o.opens) : null, redirect: REDIRECTORS.test(name),
     channel: top(o.channels, 1)[0] ? top(o.channels, 1)[0].name : null }))
     .filter((h) => h.n || h.opens).sort((a, b) => (b.opens || 0) + b.n - ((a.opens || 0) + a.n) || a.name.localeCompare(b.name)).slice(0, 25);

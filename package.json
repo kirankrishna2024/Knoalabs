@@ -1,6 +1,6 @@
 {
   "name": "knoalabs-masterclass",
-  "version": "3.14.1",
+  "version": "3.14.2",
   "description": "KnoaLabs master class registration (Express + PostgreSQL) with a login-protected admin panel, course-link manager and link-open counting, live ad analytics with master class / campaign / channel drill-down, QR generator, link search",
   "main": "server.js",
   "scripts": {

@@ -57,6 +57,29 @@ const UA = {
   const ev = (a) => Array.from({ length: a }, (_, i) => ({ k: key(100 + i), t: 'field_focus', d: { field: 'phone' } })); await track(batch({ vid: 'visitor-dddd-4444', sid: 'session-dddd-1111', events: ev(50) })); assert.strictEqual((await q("SELECT COUNT(*)::int n FROM visitor_events WHERE visitor_id='visitor-dddd-4444'"))[0].n, 20); ok('at most 20 events are taken from one request');
   assert.strictEqual((await fetch(base + '/api/track')).status, 404); ok('the tracker is write-only: GET /api/track does not exist');
 
+  // the WhatsApp in-app browser is a person, not a bot: /api/track, the campaign redirect and the open counter all read this same table
+  const UA_WA = 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 WhatsApp/2.23.20.1 A';
+  assert.strictEqual(parseUserAgent(UA_WA).bot, false); assert.strictEqual(parseUserAgent(UA_WA).in_app, 'WhatsApp');
+  assert.strictEqual(parseUserAgent('WhatsApp/2.23.20 A').bot, true);        // WhatsApp's own link-preview crawler
+  ok('a user agent that merely ends with "WhatsApp/2.23.20.1 A" is a person; the bare "WhatsApp/2.23.20 A" crawler still is a bot');
+  await track(batch({ vid: 'visitor-waaa-1111', sid: 'session-waaa-1111', utm_source: null, referrer: '', events: [{ k: key(60), t: 'page_view', d: {} }] }), UA_WA);
+  const wv = (await q("SELECT * FROM visitors WHERE visitor_id='visitor-waaa-1111'"))[0];
+  assert(wv && wv.in_app === 'WhatsApp' && wv.is_webview === true && wv.first_source === 'WhatsApp' && wv.first_method === 'in_app');
+  const ws = (await q("SELECT * FROM sessions WHERE session_id='session-waaa-1111'"))[0]; assert(ws && ws.source_detected === 'WhatsApp' && ws.source_method === 'in_app');
+  ok('a visit tracked from inside the WhatsApp app is stored (app, source, session) instead of being dropped as a bot');
+
+  // AI: the crawlers are ignored, the assistant's own app is a person and counts as ChatGPT / AI
+  const AI_BOTS = ['Mozilla/5.0 (compatible; anthropic-ai/1.0)', 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; Google-Extended',
+    'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) ChatGPT-User/1.0', 'Mozilla/5.0 (compatible; Claude-Web/1.0)', 'Mozilla/5.0 (compatible; meta-externalagent/1.1)'];
+  for (const ua of AI_BOTS) assert(parseUserAgent(ua).bot, ua);
+  const UA_GPT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 ChatGPT/1.2025.310';
+  assert.strictEqual(parseUserAgent(UA_GPT).bot, false); assert.strictEqual(parseUserAgent(UA_GPT).in_app, 'ChatGPT');
+  ok('AI crawlers (anthropic-ai, Google-Extended, ChatGPT-User, Claude-Web, meta-externalagent) are bots; the ChatGPT app opening the link is a person');
+  await track(batch({ vid: 'visitor-gpt-1111', sid: 'session-gpt-1111', utm_source: null, referrer: '', events: [{ k: key(70), t: 'page_view', d: {} }] }), UA_GPT);
+  const gv = (await q("SELECT * FROM visitors WHERE visitor_id='visitor-gpt-1111'"))[0];
+  assert(gv && gv.in_app === 'ChatGPT' && gv.first_source === 'ChatGPT / AI' && gv.first_method === 'in_app');
+  ok('a visit from inside the ChatGPT app is stored under ChatGPT / AI (in-app browser) instead of being dropped as a bot');
+
   // lead -> visitor link, time to register, visit count
   const lead = await fetch(base + '/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json', 'user-agent': UA.pixel }, body: JSON.stringify({ course: 'datascience', first_name: 'Asha', last_name: 'N', country: 'IN', phone: '9800000001', status: 'Working Professional', experience: '0-2 yrs', current_role: 'Product Manager', client_id: 'lead-client-0000001', visitor_id: 'visitor-aaaa-1111', session_id: 'session-aaaa-1111', utm_source: 'meta', utm_campaign: 'ds-reels' }) });
   assert.strictEqual(lead.status, 201); await new Promise((r2) => setTimeout(r2, 30)); const l = (await q("SELECT * FROM leads WHERE client_id='lead-client-0000001'"))[0]; assert.strictEqual(l.visit_count_before_signup, 2); assert(l.time_to_register_seconds >= 0 && l.time_to_register_seconds < 60); assert(/^[0-9a-f]{20,}$/.test(l.ip_hash)); assert.strictEqual(l.ip_version, 4); assert.strictEqual((await q("SELECT lead_count FROM visitors WHERE visitor_id='visitor-aaaa-1111'"))[0].lead_count, 1);

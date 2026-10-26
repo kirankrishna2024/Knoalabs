@@ -2,7 +2,13 @@
 // The user agent is read here and only these labels are stored (never the raw string with a visitor).
 const { inAppBrowser } = require('./sources');
 
-const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp\/|telegrambot|skypeuripreview|slack|discord|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl\/|wget|python-requests|axios|go-http|java\//i;
+// "whatsapp/" only at the START of the string: that is WhatsApp's own link-preview crawler ("WhatsApp/2.23.20 A").
+// A person reading the link inside the WhatsApp app sends a real browser user agent that merely ENDS with
+// "... Safari/537.36 WhatsApp/2.23.20.1 A" and must never be treated as a bot (the campaign redirect, the tracker
+// and the open counter all ask this table first, so a wrong answer here hides every WhatsApp visit).
+// The AI crawlers are named explicitly: they have no "bot" in their name (anthropic-ai, google-extended, chatgpt-user ...),
+// while an AI assistant's own app browser ("... ChatGPT/1.2025.310") is a person and is detected by src/sources.js.
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|^\s*whatsapp\/|chatgpt-user|anthropic-ai|claude-web|google-extended|meta-externalagent|cohere-ai|ai2bot|telegrambot|skypeuripreview|slack|discord|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl\/|wget|python-requests|axios|go-http|java\//i;
 
 function osOf(ua) {
   let m;

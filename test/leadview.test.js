@@ -15,6 +15,8 @@ const { createApp, seedAdmin } = require('../server');
 let n = 0; const ok = (m) => console.log(`  ✓ L${++n}. ${m}`);
 const UA_IG = 'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 Instagram 310.0.0.37.109 Android';
 const UA_CH = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+const UA_WA = 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 WhatsApp/2.23.20.1 A';
+const UA_GPT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 ChatGPT/1.2025.310';
 
 (async () => {
   /* ---- detection tables ---- */
@@ -27,6 +29,10 @@ const UA_CH = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHT
   assert.strictEqual(browserLabel(parseUserAgent('Mozilla/5.0 (Linux; Android 13; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/23.0 Chrome/115.0.0.0 Mobile Safari/537.36')), 'Samsung Internet');
   assert.strictEqual(browserLabel(parseUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/21B74 Instagram 312.0.0.18.111')), 'Instagram in-app browser');
   ok('browser list: an Instagram / Facebook link is "Instagram in-app browser", never "Chrome"; Samsung, Edge, Safari, Mi Browser ... are told apart');
+  assert.strictEqual(browserLabel(parseUserAgent(UA_WA)), 'WhatsApp in-app browser');
+  assert.strictEqual(browserLabel(parseUserAgent(UA_GPT)), 'ChatGPT in-app browser');
+  assert.strictEqual(S.detectSource({ userAgent: UA_GPT }).channel, 'ChatGPT / AI');
+  ok('links opened inside WhatsApp or an AI assistant are listed as that app\'s in-app browser and counted as WhatsApp / ChatGPT (AI)');
 
   db.init(new (newDb().adapters.createPg().Pool)());
   await migrate.run(db.get(), { lock: false }); await seedAdmin(); await forms.seedDefaultForms();
@@ -52,6 +58,12 @@ const UA_CH = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHT
   assert.strictEqual((await fetch(base + '/datascience?utm_campaign=ds-reels&utm_source=meta', { redirect: 'manual', headers: { 'User-Agent': UA_CH } })).status, 200);
   rd = await fetch(base + '/datascience?utm_source=whatsapp', { redirect: 'manual', headers: { 'User-Agent': UA_CH } }); assert.strictEqual(rd.status, 302); assert(/utm_campaign=ds-reels/.test(rd.headers.get('location')));
   ok('a link with a campaign nobody added (or a tag-less link) is redirected to the running campaign, keeping its source and medium; a running campaign passes; with none running the made-up tag is dropped');
+  // the same redirect must happen for somebody opening the link inside WhatsApp: that user agent used to be read as a bot
+  rd = await fetch(base + '/datascience', { redirect: 'manual', headers: { 'User-Agent': UA_WA } });
+  assert.strictEqual(rd.status, 302); assert(/utm_campaign=ds-reels/.test(rd.headers.get('location')), 'the WhatsApp in-app browser must reach the running campaign');
+  assert.strictEqual((await fetch(base + '/datascience', { redirect: 'manual', headers: { 'User-Agent': 'WhatsApp/2.23.20 A' } })).status, 200);   // WhatsApp's link-preview crawler is never redirected
+  assert.strictEqual((await fetch(base + '/datascience', { redirect: 'manual', headers: { 'User-Agent': UA_GPT } })).status, 302);                   // a link opened inside the ChatGPT app is redirected too
+  ok('the plain link redirects when it is opened inside the WhatsApp app or an AI assistant as well; the bare WhatsApp preview crawler is still left alone');
 
   await post({ client_id: 'a'.repeat(20), phone: '9000000011', first_name: 'Made', utm_campaign: 'made-up', utm_source: 'whatsapp' });
   await post({ client_id: 'b'.repeat(20), phone: '9000000012', first_name: 'Listed', utm_campaign: 'DS-Reels', utm_source: 'meta', utm_medium: 'paid' }, UA_IG);

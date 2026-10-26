@@ -20,6 +20,7 @@ let n = 0; const ok = (m) => console.log(`  ✓ FM${++n}. ${m}`);
 const SAMPLE = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'ipapi-sample.json'), 'utf8'));
 const UA_IG = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/21A329 Instagram 310.0.0.24.109 (iPhone14,2; iOS 17_0)';
 const UA_SAFARI = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1';
+const UA_WA = 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 WhatsApp/2.23.20.1 A';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function until(fn, ms = 2000) { const t = Date.now(); while (Date.now() - t < ms) { const v = await fn(); if (v) return v; await sleep(10); } return null; }
 
@@ -86,6 +87,10 @@ async function until(fn, ms = 2000) { const t = Date.now(); while (Date.now() - 
   ok('the exact browser location is stored when the person allowed it (and impossible coordinates are ignored)');
   res = await post({ i: 4, extra: {} }); id = (await res.json()).id; row = (await db.query('SELECT source_detected, source_method FROM leads WHERE id=$1', [id])).rows[0];
   assert.deepStrictEqual(row, { source_detected: 'Direct', source_method: 'direct' }); ok('no evidence at all is stored as Direct');
+  res = await post({ i: 8, extra: {} }, UA_WA); id = (await res.json()).id;
+  row = (await db.query('SELECT source_detected, source_method, in_app, browser FROM leads WHERE id=$1', [id])).rows[0];
+  assert.deepStrictEqual(row, { source_detected: 'WhatsApp', source_method: 'in_app', in_app: 'WhatsApp', browser: 'Chrome' });
+  ok('a registration made inside the WhatsApp app is detected as WhatsApp from the app itself and saved as any other lead');
 
   // geo on, with the fixture (no live call)
   config.geo.ipSalt = 'forms-test-salt-1234567';

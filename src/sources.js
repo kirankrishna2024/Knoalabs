@@ -5,7 +5,7 @@
 //   2. click id          fbclid -> Meta, gclid/gbraid/wbraid -> Google, msclkid -> Bing, li_fat_id -> LinkedIn, ttclid -> TikTok (method "click_id")
 //                        Click ids are opaque: callers pass presence flags only, the value is never read or stored.
 //   2b. utm_medium=qr / whatsapp (when no utm_source says it)
-//   3. in-app browser    the user agent of the Instagram / Facebook / Messenger / LinkedIn / Telegram / WhatsApp / TikTok app (method "in_app")
+//   3. in-app browser    the user agent of the Instagram / Facebook / Messenger / LinkedIn / Telegram / WhatsApp / TikTok app, or of an AI assistant (ChatGPT / Gemini / Claude / Perplexity ...) (method "in_app")
 //   4. referrer host     l.instagram.com, mail.google.com, chatgpt.com ... (method "referrer")
 //   5. nothing           "Direct" (method "direct"); a host we do not know is "Other" and keeps its host name (never "undefined")
 // Channel names for the channels analytics.js already knows (Meta, Google, YouTube, WhatsApp, LinkedIn, X / Twitter, Telegram, Bing) are
@@ -25,8 +25,9 @@ const CHANNELS = [
   { name: 'LinkedIn', utm: /^(linkedin|lnkd|lnkd\.in|li)$/i, hosts: ['linkedin.com', 'lnkd.in'], clickIds: ['li_fat_id'], inApp: /LinkedInApp/i },
   { name: 'Telegram', utm: /^(telegram|tg|t\.me)$/i, hosts: ['t.me', 'telegram.org', 'web.telegram.org', 'telegram.me'], inApp: /\bTelegram\b/i },
   { name: 'WhatsApp', utm: /^(whatsapp|wa|wa\.me)$/i, hosts: ['wa.me', 'whatsapp.com', 'web.whatsapp.com', 'api.whatsapp.com'], inApp: /\bWhatsApp\b/i },
-  { name: 'ChatGPT / AI', utm: /^(chatgpt|openai|chat\.?gpt|perplexity|gemini|bard|copilot|claude|deepseek|grok|mistral|ai|llm)$/i,
-    hosts: ['chatgpt.com', 'chat.openai.com', 'openai.com', 'perplexity.ai', 'gemini.google.com', 'bard.google.com', 'copilot.microsoft.com', 'claude.ai', 'deepseek.com', 'chat.deepseek.com', 'you.com', 'poe.com', 'grok.com', 'x.ai', 'meta.ai', 'kimi.com', 'mistral.ai', 'chat.mistral.ai', 'phind.com', 'copilot.com', 'edgeservices.bing.com'] },
+  { name: 'ChatGPT / AI', utm: /^(chatgpt|openai|chat\.?gpt|perplexity|gemini|bard|copilot|claude|deepseek|grok|mistral|ai|llm|gpt|oai|anthropic|qwen|kimi|doubao|poe|character|aistudio|manus|genai|ai[\s_.-]?agent|ai[\s_.-]?bot|chatbot)$/i,
+    hosts: ['chatgpt.com', 'chat.openai.com', 'openai.com', 'perplexity.ai', 'gemini.google.com', 'bard.google.com', 'aistudio.google.com', 'notebooklm.google.com', 'copilot.microsoft.com', 'claude.ai', 'deepseek.com', 'chat.deepseek.com', 'you.com', 'poe.com', 'grok.com', 'x.ai', 'meta.ai', 'kimi.com', 'kimi.moonshot.cn', 'moonshot.cn', 'mistral.ai', 'chat.mistral.ai', 'phind.com', 'copilot.com', 'edgeservices.bing.com', 'character.ai', 'qwen.ai', 'chat.qwen.ai', 'doubao.com', 'manus.im'] },
+  // The AI assistants that open the page in their own in-app browser are handled by inAppBrowser() below.
   { name: 'X / Twitter', utm: /^(t\.co|twitter|x|x\.com|tw)$/i, hosts: ['t.co', 'twitter.com', 'x.com'] },
   { name: 'Reddit', utm: /^(reddit)$/i, hosts: ['reddit.com', 'out.reddit.com', 'old.reddit.com', 'redd.it'] },
   { name: 'TikTok', utm: /^(tiktok|tt)$/i, hosts: ['tiktok.com'], clickIds: ['ttclid'], inApp: /musical_ly|BytedanceWebview|TikTok/i },
@@ -42,6 +43,10 @@ const CHANNELS = [
 ];
 const ALL_CLICK_IDS = [...new Set(CHANNELS.flatMap((c) => c.clickIds || []))];
 const MEDIUM_CHANNELS = [[/^(qr|qr[\s_.-]?code|qrcode|print)$/i, 'QR scan'], [/^(whatsapp|wa)$/i, 'WhatsApp'], [/^e-?mail$/i, 'Email']];   // utm_medium says it when utm_source does not
+// The AI assistants with their own in-app browser: one pattern per app, all of them counted under the single "ChatGPT / AI"
+// channel. Listed as that app in the browser list ("ChatGPT in-app browser"). Real apps only: an AI crawler is a bot (BOT in src/ua.js).
+const AI_APPS = [[/\bChatGPT\b|\bOpenAI\b/i, 'ChatGPT'], [/\bPerplexity\b/i, 'Perplexity'], [/\bClaude\b/i, 'Claude'], [/\bCopilot\b/i, 'Copilot'],
+  [/\bGemini\b/i, 'Gemini'], [/\bDeepSeek\b/i, 'DeepSeek'], [/\bGrok\b/i, 'Grok'], [/\bQwen\b/i, 'Qwen'], [/\bPoe\b/i, 'Poe']];
 
 const clean = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '');
 const normHost = (h) => String(h || '').trim().toLowerCase().replace(/^www\./, '').replace(/\.$/, '').slice(0, 120);
@@ -94,6 +99,8 @@ function inAppBrowser(ua) {
   if (/Twitter for|TwitterAndroid|\bTwitterWebView\b/i.test(s)) return { app: 'X / Twitter', channel: 'X / Twitter' };
   if (/MicroMessenger/i.test(s)) return { app: 'WeChat', channel: 'WeChat' };
   if (/\bLine\/\d/i.test(s)) return { app: 'Line', channel: 'Line' };
+  // an AI assistant's own browser (ChatGPT, Gemini, Claude, Perplexity ...): often no referring site at all, so this is the only signal
+  for (const [re, app] of AI_APPS) if (re.test(s)) return { app, channel: 'ChatGPT / AI' };
   if (/\bGSA\/\d|GoogleApp\//i.test(s)) return { app: 'Google app', channel: 'Google' };
   return null;
 }

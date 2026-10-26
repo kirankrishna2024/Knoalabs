@@ -55,6 +55,17 @@ const rows = async () => (await db.query('SELECT * FROM page_visits ORDER BY id'
   await beacon({ vid: 'case-visitor-0001', course: 'datascience', utm_medium: 'Paid' }); await beacon({ vid: 'case-visitor-0001', course: 'datascience', utm_medium: 'paid' });
   assert.strictEqual((await db.query("SELECT COUNT(*)::int c FROM page_visits WHERE dedupe_key LIKE 'case-visitor-0001|%'")).rows[0].c, 1); ok('"Paid" and "paid" are the same medium: one open, not two');
 
+  /* ---- a person inside the WhatsApp app is a visitor; only WhatsApp's own preview crawler is a bot ---- */
+  const UA_WA = 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 WhatsApp/2.23.20.1 A';
+  const waBefore = (await rows()).length;
+  await beacon({ vid: 'visitor-wa-tagged-01', course: 'datascience', utm_source: 'whatsapp', utm_campaign: 'ds-reels' }, UA_WA);
+  await beacon({ vid: 'visitor-wa-plain-001', course: 'datascience' }, UA_WA);                   // nothing tagged: the app itself says WhatsApp
+  await beacon({ vid: 'bot-wa-preview-001', course: 'datascience', utm_source: 'whatsapp' }, 'WhatsApp/2.23.20 A');   // the link-preview crawler
+  v = await rows(); assert.strictEqual(v.length, waBefore + 2);
+  const wa = v.filter((x) => String(x.dedupe_key).startsWith('visitor-wa-'));
+  assert.deepStrictEqual(wa.map((x) => [x.source_detected, x.source_method]), [['WhatsApp', 'utm'], ['WhatsApp', 'in_app']]);
+  ok('a link opened inside the WhatsApp app is counted, tagged or not (WhatsApp / utm and WhatsApp / in_app); the bare WhatsApp preview crawler is still ignored');
+
   /* ---- the counter is wired into the page ---- */
   const js = await (await fetch(base + '/register.js')).text();
   assert(js.includes("'/api/visit'") && js.includes('keepalive: true') && js.includes('knoa_vid') && js.includes("credentials: 'omit'")); ok('the registration page reports each open (once per load, silent on failure)');

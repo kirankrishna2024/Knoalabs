@@ -13,8 +13,13 @@ const campaigns = require('./campaigns');
 const router = express.Router();
 // Many students share one IP (college Wi-Fi, mobile carrier gateways), so the per-IP limit is generous: it only stops floods.
 const BEACONS_PER_10_MIN = 600;
-// crawlers, link-preview fetchers (WhatsApp / Facebook / Slack ...), headless browsers and uptime monitors are not people
-const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|telegram|skype|slack|discord|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests|axios|go-http/i;
+// crawlers, link-preview fetchers (WhatsApp / Facebook / Slack ...), headless browsers and uptime monitors are not people.
+// "whatsapp/" is only matched at the START of the user agent: that is the link-preview crawler ("WhatsApp/2.23.20 A").
+// Someone reading the link inside the WhatsApp app sends "Mozilla/5.0 ... WhatsApp/2.23.20.1 A": a real browser,
+// counted like any other visit, otherwise WhatsApp opens would always show zero.
+// The AI crawlers are named explicitly (anthropic-ai, google-extended, chatgpt-user ... carry no "bot"); an AI assistant's
+// own app browser is a person and is counted under ChatGPT / AI.
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|^\s*whatsapp\/|chatgpt-user|anthropic-ai|claude-web|google-extended|meta-externalagent|cohere-ai|ai2bot|telegram|skype|slack|discord|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests|axios|go-http/i;
 const text = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '');
 const orNull = (v) => v || null;
 

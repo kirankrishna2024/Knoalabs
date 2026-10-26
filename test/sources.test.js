@@ -14,6 +14,8 @@ const UA = {
   wa: 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 WhatsApp/2.23.20.0',
   tt: 'Mozilla/5.0 (Linux; Android 12; Redmi) AppleWebKit/537.36 Chrome/119 Mobile Safari/537.36 BytedanceWebview/d8a21c6',
   safari: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
+  gpt: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 ChatGPT/1.2025.310',
+  plx: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/121.0.0.0 Mobile Safari/537.36 Perplexity/1.20.5',
   chrome: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
 };
 
@@ -37,6 +39,11 @@ const CASES = [
   ['utm whatsapp', { utm_source: 'whatsapp' }, 'WhatsApp', 'utm'],
   ['utm chatgpt', { utm_source: 'chatgpt.com' }, 'ChatGPT / AI', 'utm'],
   ['utm perplexity', { utm_source: 'perplexity' }, 'ChatGPT / AI', 'utm'],
+  ['utm gemini', { utm_source: 'gemini' }, 'ChatGPT / AI', 'utm'],
+  ['utm claude', { utm_source: 'claude' }, 'ChatGPT / AI', 'utm'],
+  ['utm qwen', { utm_source: 'qwen' }, 'ChatGPT / AI', 'utm'],
+  ['utm grok', { utm_source: 'grok' }, 'ChatGPT / AI', 'utm'],
+  ['utm ai_agent (the tag AI chats add)', { utm_source: 'ai_agent' }, 'ChatGPT / AI', 'utm'],
   ['utm x', { utm_source: 'x' }, 'X / Twitter', 'utm'],
   ['utm twitter', { utm_source: 'twitter' }, 'X / Twitter', 'utm'],
   ['utm reddit', { utm_source: 'reddit' }, 'Reddit', 'utm'],
@@ -64,6 +71,9 @@ const CASES = [
   ['in-app Telegram', { userAgent: UA.tg }, 'Telegram', 'in_app'],
   ['in-app WhatsApp', { userAgent: UA.wa }, 'WhatsApp', 'in_app'],
   ['in-app TikTok', { userAgent: UA.tt }, 'TikTok', 'in_app'],
+  ['in-app ChatGPT', { userAgent: UA.gpt }, 'ChatGPT / AI', 'in_app'],
+  ['in-app Perplexity', { userAgent: UA.plx }, 'ChatGPT / AI', 'in_app'],
+  ['in-app AI app beats nothing at all', { userAgent: UA.gpt, referrer: '' }, 'ChatGPT / AI', 'in_app'],
   ['in-app beats referrer', { userAgent: UA.li, referrer: 'https://www.google.com/' }, 'LinkedIn', 'in_app'],
   // ---- 4. referrer hosts ----
   ['ref l.instagram.com', { userAgent: UA.safari, referrer: 'https://l.instagram.com/?u=x' }, 'Meta', 'referrer', 'l.instagram.com'],
@@ -82,6 +92,8 @@ const CASES = [
   ['ref chatgpt.com', { referrer: 'https://chatgpt.com/' }, 'ChatGPT / AI', 'referrer', 'chatgpt.com'],
   ['ref chat.openai.com', { referrer: 'https://chat.openai.com/c/1' }, 'ChatGPT / AI', 'referrer', 'chat.openai.com'],
   ['ref perplexity', { referrer: 'https://www.perplexity.ai/search/x' }, 'ChatGPT / AI', 'referrer', 'perplexity.ai'],
+  ['ref aistudio.google.com', { referrer: 'https://aistudio.google.com/prompts' }, 'ChatGPT / AI', 'referrer', 'aistudio.google.com'],
+  ['ref character.ai', { referrer: 'https://character.ai/' }, 'ChatGPT / AI', 'referrer', 'character.ai'],
   ['ref gemini', { referrer: 'https://gemini.google.com/app' }, 'ChatGPT / AI', 'referrer', 'gemini.google.com'],
   ['ref copilot', { referrer: 'https://copilot.microsoft.com/' }, 'ChatGPT / AI', 'referrer', 'copilot.microsoft.com'],
   ['ref claude.ai', { referrer: 'https://claude.ai/chat/1' }, 'ChatGPT / AI', 'referrer', 'claude.ai'],
@@ -135,5 +147,24 @@ ok('for the channels analytics.js already names, src/sources.js returns the same
 /* a decoy cannot fake a stronger source through the user agent alone */
 assert.strictEqual(S.detectSource({ userAgent: 'Mozilla/5.0 (X11; Linux) Chrome/120 Safari/537.36 FakeInstagramFan' }).channel, 'Direct');
 ok('a user agent that only contains part of a word (not the real app token) is not an in-app browser');
+
+/* every AI assistant app is named in the browser list and counted as ONE channel */
+const AI_APP_UA = {
+  ChatGPT: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 ChatGPT/1.2025.310',
+  Perplexity: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/121 Mobile Safari/537.36 Perplexity/1.20.5',
+  Claude: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Claude/2.1.0',
+  Copilot: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/121 Mobile Safari/537.36 Copilot/31.4.1',
+  Gemini: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/121 Mobile Safari/537.36 Gemini/1.0.1',
+  DeepSeek: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 DeepSeek/1.0.0',
+  Grok: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Grok/1.4.0',
+  Qwen: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/121 Mobile Safari/537.36 Qwen/3.0.0',
+  Poe: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Poe/2.0.1'
+};
+for (const [app, ua] of Object.entries(AI_APP_UA)) {
+  assert.deepStrictEqual(S.inAppBrowser(ua), { app, channel: 'ChatGPT / AI' }, app);
+  assert.strictEqual(S.detectSource({ userAgent: ua }).channel, 'ChatGPT / AI', app);
+}
+assert.deepStrictEqual(S.inAppBrowser('Mozilla/5.0 (Linux) Chrome/121 Mobile Safari/537.36 GoogleApp/15.0'), { app: 'Google app', channel: 'Google' });
+ok('ChatGPT, Perplexity, Claude, Copilot, Gemini, DeepSeek, Grok, Qwen and Poe openers are named as that app and all count as one "ChatGPT / AI" source (the Google app still counts as Google)');
 
 console.log(`\nAll ${n} source detection checks passed`);

@@ -104,6 +104,12 @@ const CASES = [
   ['ref bing', { referrer: 'https://www.bing.com/search?q=x' }, 'Bing', 'referrer', 'bing.com'],
   ['ref duckduckgo', { referrer: 'https://duckduckgo.com/' }, 'Other search', 'referrer', 'duckduckgo.com'],
   ['ref unknown host shows host', { referrer: 'https://blog.example.org/post' }, 'Other', 'referrer', 'blog.example.org'],
+  // a link tapped in a chat app: Chrome keeps the package that opened it, even with no tag and no app token in the user agent
+  ['ref android-app://com.whatsapp', { referrer: 'android-app://com.whatsapp' }, 'WhatsApp', 'referrer', 'com.whatsapp'],
+  ['ref android-app://com.facebook.katana', { referrer: 'android-app://com.facebook.katana' }, 'Meta', 'referrer', 'com.facebook.katana'],
+  ['ref android-app://org.telegram.messenger', { referrer: 'android-app://org.telegram.messenger' }, 'Telegram', 'referrer', 'org.telegram.messenger'],
+  ['ref android-app://com.openai.chatgpt', { referrer: 'android-app://com.openai.chatgpt' }, 'ChatGPT / AI', 'referrer', 'com.openai.chatgpt'],
+  ['ref android-app://an app we do not know', { referrer: 'android-app://com.example.chat' }, 'Other', 'referrer', 'com.example.chat'],
   ['ref lookalike is not Google', { referrer: 'https://notgoogle.com/' }, 'Other', 'referrer', 'notgoogle.com'],
   ['ref lookalike suffix is not Meta', { referrer: 'https://evilfacebook.com/' }, 'Other', 'referrer', 'evilfacebook.com'],
   // ---- 5. direct and edge cases ----

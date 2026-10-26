@@ -8,7 +8,9 @@ const { inAppBrowser } = require('./sources');
 // and the open counter all ask this table first, so a wrong answer here hides every WhatsApp visit).
 // The AI crawlers are named explicitly: they have no "bot" in their name (anthropic-ai, google-extended, chatgpt-user ...),
 // while an AI assistant's own app browser ("... ChatGPT/1.2025.310") is a person and is detected by src/sources.js.
-const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|^\s*whatsapp\/|chatgpt-user|anthropic-ai|claude-web|google-extended|meta-externalagent|cohere-ai|ai2bot|telegrambot|skypeuripreview|slack|discord|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl\/|wget|python-requests|axios|go-http|java\//i;
+// "slack" / "discord" / "telegram" are only their link-preview fetchers (Slackbot, Discordbot, TelegramBot): the app's own
+// browser must stay a person, or a link shared in a chat is never tracked or redirected.
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|^\s*whatsapp\/|chatgpt-user|anthropic-ai|claude-web|google-extended|meta-externalagent|cohere-ai|ai2bot|telegrambot|skypeuripreview|slackbot|discordbot|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl\/|wget|python-requests|axios|go-http|java\//i;
 
 function osOf(ua) {
   let m;

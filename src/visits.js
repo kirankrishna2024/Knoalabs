@@ -18,8 +18,10 @@ const BEACONS_PER_10_MIN = 600;
 // Someone reading the link inside the WhatsApp app sends "Mozilla/5.0 ... WhatsApp/2.23.20.1 A": a real browser,
 // counted like any other visit, otherwise WhatsApp opens would always show zero.
 // The AI crawlers are named explicitly (anthropic-ai, google-extended, chatgpt-user ... carry no "bot"); an AI assistant's
-// own app browser is a person and is counted under ChatGPT / AI.
-const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|^\s*whatsapp\/|chatgpt-user|anthropic-ai|claude-web|google-extended|meta-externalagent|cohere-ai|ai2bot|telegram|skype|slack|discord|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests|axios|go-http/i;
+// own app browser is a person and is counted under ChatGPT / AI. Same for the chat apps: only their link-preview fetchers
+// (Slackbot-LinkExpanding, Discordbot, SkypeUriPreview, TelegramBot) are bots, never the app's own browser,
+// otherwise a link shared in a chat would never be counted when it is tapped.
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|^\s*whatsapp\/|chatgpt-user|anthropic-ai|claude-web|google-extended|meta-externalagent|cohere-ai|ai2bot|telegrambot|skypeuripreview|slackbot|discordbot|embedly|pingdom|uptime|monitor|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests|axios|go-http/i;
 const text = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '');
 const orNull = (v) => v || null;
 

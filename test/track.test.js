@@ -80,6 +80,16 @@ const UA = {
   assert(gv && gv.in_app === 'ChatGPT' && gv.first_source === 'ChatGPT / AI' && gv.first_method === 'in_app');
   ok('a visit from inside the ChatGPT app is stored under ChatGPT / AI (in-app browser) instead of being dropped as a bot');
 
+  // chat apps: only their link-preview fetchers are bots; the app's own browser is a person (a link shared in a chat must count)
+  const CHAT_BOTS = ['Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)', 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)', 'SkypeUriPreview/1.0', 'TelegramBot (like TwitterBot)'];
+  for (const ua of CHAT_BOTS) assert(parseUserAgent(ua).bot, ua);
+  const UA_TG = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 Telegram-Android/10.2.0';
+  assert.strictEqual(parseUserAgent(UA_TG).bot, false); assert.strictEqual(parseUserAgent(UA_TG).in_app, 'Telegram');
+  await track(batch({ vid: 'visitor-tg-11111', sid: 'session-tg-11111', utm_source: null, referrer: 'android-app://org.telegram.messenger', events: [{ k: key(80), t: 'page_view', d: {} }] }), UA_TG);
+  const tv = (await q("SELECT * FROM visitors WHERE visitor_id='visitor-tg-11111'"))[0];
+  assert(tv && tv.in_app === 'Telegram' && tv.first_source === 'Telegram' && tv.first_method === 'in_app');
+  ok('the Slack / Discord / Skype / Telegram link-preview fetchers are bots, the Telegram app itself is tracked as Telegram');
+
   // lead -> visitor link, time to register, visit count
   const lead = await fetch(base + '/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json', 'user-agent': UA.pixel }, body: JSON.stringify({ course: 'datascience', first_name: 'Asha', last_name: 'N', country: 'IN', phone: '9800000001', status: 'Working Professional', experience: '0-2 yrs', current_role: 'Product Manager', client_id: 'lead-client-0000001', visitor_id: 'visitor-aaaa-1111', session_id: 'session-aaaa-1111', utm_source: 'meta', utm_campaign: 'ds-reels' }) });
   assert.strictEqual(lead.status, 201); await new Promise((r2) => setTimeout(r2, 30)); const l = (await q("SELECT * FROM leads WHERE client_id='lead-client-0000001'"))[0]; assert.strictEqual(l.visit_count_before_signup, 2); assert(l.time_to_register_seconds >= 0 && l.time_to_register_seconds < 60); assert(/^[0-9a-f]{20,}$/.test(l.ip_hash)); assert.strictEqual(l.ip_version, 4); assert.strictEqual((await q("SELECT lead_count FROM visitors WHERE visitor_id='visitor-aaaa-1111'"))[0].lead_count, 1);

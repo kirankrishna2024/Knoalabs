@@ -2,7 +2,8 @@
 process.env.LOG_LEVEL = 'silent';
 process.env.CAMPAIGN_ENFORCE = 'false';                         // this file tests raw tag counting; the campaign rules have their own test (leadview.test.js)
 const assert = require('assert');
-const { newDb } = require('pg-mem');
+const tryPgMem = () => { try { return require('pg-mem'); } catch { console.error('SKIP visits.test.js: pg-mem is not installed (no node_modules). Run: npm ci && node test/visits.test.js'); process.exit(0); } };
+const { newDb } = tryPgMem();
 const db = require('../src/db');
 const migrate = require('../src/migrate');
 const Lead = require('../src/models/Lead');

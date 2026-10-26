@@ -28,7 +28,7 @@ const CHANNELS = [
     hosts: ['mail.google.com', 'gmail.com', 'outlook.live.com', 'outlook.office.com', 'outlook.office365.com', 'mail.yahoo.com', 'mail.yahoo.co.in', 'mail.proton.me', 'mailchi.mp', 'list-manage.com', 'sendgrid.net', 'substack.com', 'convertkit.com', 'hubspotemail.net', 'sendibt3.com', 'zoho.com', 'com.google.android.gm'] },
   { name: 'LinkedIn', utm: /^(linkedin|lnkd|lnkd\.in|li)$/i, hosts: ['linkedin.com', 'lnkd.in', 'com.linkedin.android'], clickIds: ['li_fat_id'], inApp: /LinkedInApp/i },
   { name: 'Telegram', utm: /^(telegram|tg|t\.me)$/i, hosts: ['t.me', 'telegram.org', 'web.telegram.org', 'telegram.me', 'org.telegram.messenger', 'org.telegram.messenger.web'], inApp: /\bTelegram\b/i },
-  { name: 'WhatsApp', utm: /^(whatsapp|wa|wa\.me)$/i, hosts: ['wa.me', 'whatsapp.com', 'web.whatsapp.com', 'api.whatsapp.com', 'com.whatsapp', 'com.whatsapp.w4b'], inApp: /\bWhatsApp\b/i },
+  { name: 'WhatsApp', utm: /^(whatsapp|wa|wa\.me)$/i, hosts: ['wa.me', 'whatsapp.com', 'web.whatsapp.com', 'api.whatsapp.com', 'com.whatsapp', 'com.whatsapp.w4b'], inApp: /\bWhatsApp\b/i, androidPack: ['com.whatsapp', 'com.whatsapp.w4b'] },
   { name: 'ChatGPT / AI', utm: /^(chatgpt|openai|chat\.?gpt|perplexity|gemini|bard|copilot|claude|deepseek|grok|mistral|ai|llm|gpt|oai|anthropic|qwen|kimi|doubao|poe|character|aistudio|manus|genai|ai[\s_.-]?agent|ai[\s_.-]?bot|chatbot)$/i,
     hosts: ['chatgpt.com', 'chat.openai.com', 'openai.com', 'com.openai.chatgpt', 'perplexity.ai', 'com.perplexity.app', 'gemini.google.com', 'bard.google.com', 'com.google.android.apps.bard', 'aistudio.google.com', 'notebooklm.google.com', 'copilot.microsoft.com', 'claude.ai', 'deepseek.com', 'chat.deepseek.com', 'you.com', 'poe.com', 'grok.com', 'x.ai', 'meta.ai', 'kimi.com', 'kimi.moonshot.cn', 'moonshot.cn', 'mistral.ai', 'chat.mistral.ai', 'phind.com', 'copilot.com', 'edgeservices.bing.com', 'character.ai', 'qwen.ai', 'chat.qwen.ai', 'doubao.com', 'manus.im'] },
   // The AI assistants that open the page in their own in-app browser are handled by inAppBrowser() below.
@@ -38,7 +38,7 @@ const CHANNELS = [
   { name: 'Bing', utm: /^(bing|msn|microsoft[\s_.-]?ads)$/i, hosts: ['bing.com', 'msn.com', 'cn.bing.com'], clickIds: ['msclkid'] },
   { name: 'QR scan', utm: /^(qr|qrcode|qr[\s_.-]?code|qr[\s_.-]?scan|scan|poster|print|flyer|standee|brochure)$/i, hosts: [] },
   { name: 'Short / bio link', utm: /^(bitly|bit\.ly|linktree|linktr\.ee|bio|biolink|link[\s_.-]?in[\s_.-]?bio|shortlink|short[\s_.-]?link|redirect)$/i,
-    hosts: ['bit.ly', 'tinyurl.com', 't.ly', 'rb.gy', 'cutt.ly', 'is.gd', 'ow.ly', 'buff.ly', 'goo.gl', 'shorturl.at', 'rebrand.ly', 'linktr.ee', 'beacons.ai', 'bio.link', 'lnk.bio', 'taplink.cc', 'l.wl.co', 'wa.link'] },
+    hosts: ['bit.ly', 'tinyurl.com', 't.ly', 'rb.gy', 'cutt.ly', 'is.gd', 'ow.ly', 'buff.ly', 'goo.gl', 'shorturl.at', 'rebrand.ly', 'linktr.ee', 'beacons.ai', 'bio.link', 'lnk.bio', 'taplink.cc', 'l.wl.co'] },
   { name: 'Snapchat', utm: /^(snapchat|snap|sc)$/i, hosts: ['snapchat.com', 'com.snapchat.android'], clickIds: ['sccid'], inApp: /\bSnapchat\b/i },
   { name: 'Pinterest', utm: /^(pinterest|pin)$/i, hosts: ['pinterest.com', 'pin.it', 'pinterest.co.uk', 'in.pinterest.com', 'com.pinterest'], inApp: /\bPinterest\b/i },
   { name: 'Quora', utm: /^(quora)$/i, hosts: ['quora.com'] },
@@ -85,6 +85,20 @@ function channelFromHost(rawHost) {
     if (c.hostRe && c.hostRe.test(h) && bestLen < 0) { best = c.name; bestLen = 0; }
   }
   return best;
+}  /** Android-app intent package name -> channel name, or null. Covers the chat / social / helper apps that open links and leave a
+ *  Referer: android-app://<package> (Chrome keeps the package even when the app's browser itself sends no signal).
+ *  Mapping lives on the channel, not in a separate list, so it stays with the rest of that channel's evidence.
+ *  The returned host is the bare package name, not the full android-app:// URL — that is what the referrer-host table already
+ *  uses and is what you see in "How the source was found".
+ */
+function channelFromAndroidPackage(pkg) {
+  const p = pkg.trim().toLowerCase();
+  if (!p) return null;
+  for (const c of CHANNELS) {
+    const want = (c.androidPack || []).map((x) => String(x).toLowerCase());
+    if (want.length && want.includes(p)) return c.name;
+  }
+  return null;
 }
 
 /** The app whose in-app browser opened the page ("Instagram", "Facebook", "Messenger", "LinkedIn", "Telegram", "WhatsApp", "TikTok") or null. Read from the user agent, never stored raw. */
@@ -135,6 +149,19 @@ function detectSource(i = {}) {
   if (mediumOnly && mediumOnly !== 'Email') return { channel: mediumOnly, method: 'utm', host: null };         // ?utm_medium=qr without a source: still a QR scan
   const ids = i.clickIds || {};
   for (const c of CHANNELS) if ((c.clickIds || []).some((k) => ids[k])) return { channel: c.name, method: 'click_id', host: null };
+  // a link shared in a chat: Chrome keeps the Android package that opened it, even when the app's own browser gives no
+  // user-agent token and the referrer is a bare android-app:// URL with no hostname. Map those packages directly to their
+  // channel so a tap inside WhatsApp / Facebook / Telegram / LinkedIn / ... is still attributed. The host we store is the
+  // package name, not the full android-app:// URL — that is what the referrer-host table already uses and is what appears in
+  // "How the source was found".
+  const androidRef = clean(i.referrer, 300);
+  if (androidRef && androidRef.startsWith('android-app://')) {
+    const pkg = androidRef.slice('android-app://'.length).split('/')[0];
+    if (pkg) {
+      const byPkg = channelFromAndroidPackage(pkg);
+      if (byPkg) return { channel: byPkg, method: 'referrer', host: pkg };
+    }
+  }
   const app = inAppBrowser(i.userAgent);
   if (app) return { channel: app.channel, method: 'in_app', host: null };
   const own = normHost(i.ownHost);

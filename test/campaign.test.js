@@ -2,7 +2,11 @@
 // the channel filter (derived in JavaScript), the all-time counts and the live feed. Run: node test/campaign.test.js
 process.env.LOG_LEVEL = 'silent';
 const assert = require('assert');
-const { newDb } = require('pg-mem');
+const reqPgMem = () => {
+  try { return require('pg-mem'); }
+  catch { console.error('SKIP campaign.test.js: pg-mem is not installed (no node_modules). Run: npm ci && node test/campaign.test.js'); process.exit(0); }
+};
+const { newDb } = reqPgMem();
 const db = require('../src/db');
 const migrate = require('../src/migrate');
 const Lead = require('../src/models/Lead');

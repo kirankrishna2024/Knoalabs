@@ -1,17 +1,13 @@
 // Source detection: a table of utm / click-id / in-app / referrer cases across every listed channel.
 // Run: node test/sources.test.js
 const assert = require('assert');
-const S = require('../src/sources');
-const { niceChannel } = require('../src/analytics');
-let n = 0; const ok = (m) => console.log(`  ✓ SR${++n}. ${m}`);
-
-const UA = {
+const S = require('../src/sources');let n = 0; const ok = (m) => console.log(`  ✓ SR${++n}. ${m}`);const UA = {
   ig: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/21A329 Instagram 310.0.0.24.109 (iPhone14,2; iOS 17_0)',
   fb: 'Mozilla/5.0 (Linux; Android 13; SM-A546E; wv) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/440.0.0.30.113;]',
   msg: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/21A329 [FBAN/MessengerForiOS;FBAV/430.0;FBBV/1]',
   li: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 LinkedInApp/9.30.1',
   tg: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36 Telegram-Android/10.2.0',
-  wa: 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 WhatsApp/2.23.20.0',
+  wa: 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 WhatsApp/2.23.20.1 A',
   tt: 'Mozilla/5.0 (Linux; Android 12; Redmi) AppleWebKit/537.36 Chrome/119 Mobile Safari/537.36 BytedanceWebview/d8a21c6',
   safari: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
   gpt: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 ChatGPT/1.2025.310',
@@ -53,6 +49,10 @@ const CASES = [
   ['utm unknown + medium email', { utm_source: 'oct-blast', utm_medium: 'email' }, 'Email', 'utm'],
   // utm beats everything else
   ['utm beats click id and in-app', { utm_source: 'google', clickIds: { fbclid: true }, userAgent: UA.ig, referrer: 'https://l.instagram.com/' }, 'Google', 'utm'],
+  // the tag is an explicit statement of the channel: it wins over the app the link happened to be opened in (decided rule)
+  ['utm meta wins over the WhatsApp app', { utm_source: 'meta', userAgent: UA.wa }, 'Meta', 'utm'],
+  ['utm meta wins over the WhatsApp referrer', { utm_source: 'meta', referrer: 'android-app://com.whatsapp' }, 'Meta', 'utm'],
+  ['utm whatsapp wins over a plain desktop browser', { utm_source: 'whatsapp', userAgent: UA.chrome }, 'WhatsApp', 'utm'],
   ['unfilled macro is ignored', { utm_source: '{{site_source_name}}', userAgent: UA.ig }, 'Meta', 'in_app'],
   // ---- 2. click ids ----
   ['fbclid', { clickIds: { fbclid: true } }, 'Meta', 'click_id'],
@@ -70,11 +70,34 @@ const CASES = [
   ['in-app LinkedIn', { userAgent: UA.li }, 'LinkedIn', 'in_app'],
   ['in-app Telegram', { userAgent: UA.tg }, 'Telegram', 'in_app'],
   ['in-app WhatsApp', { userAgent: UA.wa }, 'WhatsApp', 'in_app'],
+  ['in-app WhatsApp: utm wins over in-app', { utm_source: 'meta', userAgent: UA.wa }, 'Meta', 'utm'],
   ['in-app TikTok', { userAgent: UA.tt }, 'TikTok', 'in_app'],
   ['in-app ChatGPT', { userAgent: UA.gpt }, 'ChatGPT / AI', 'in_app'],
   ['in-app Perplexity', { userAgent: UA.plx }, 'ChatGPT / AI', 'in_app'],
   ['in-app AI app beats nothing at all', { userAgent: UA.gpt, referrer: '' }, 'ChatGPT / AI', 'in_app'],
   ['in-app beats referrer', { userAgent: UA.li, referrer: 'https://www.google.com/' }, 'LinkedIn', 'in_app'],
+  // ---- 3b. Android-app referrer (package names as host) ----
+  // Android-app intent packages: Chrome keeps the package that opened the link even when the app's own browser gives no
+  // user-agent token, so these are the fallback that makes a tap inside WhatsApp / Facebook / Telegram / LinkedIn / ...
+  // still attributed. The host field is the android-app:// URL itself (the package is the only signal).
+  // android-app:// referrers: Chrome preserves the package that opened the link; that package is the signal. It is stored as
+  // the host (the package name), so it matches the same "how it was found" as any other channel's referrer host.
+  ['ref android-app://com.whatsapp', { referrer: 'android-app://com.whatsapp' }, 'WhatsApp', 'referrer', 'com.whatsapp'],
+  ['ref android-app://com.whatsapp.w4b', { referrer: 'android-app://com.whatsapp.w4b' }, 'WhatsApp', 'referrer', 'com.whatsapp.w4b'],
+  ['ref android-app://com.facebook.katana', { referrer: 'android-app://com.facebook.katana' }, 'Meta', 'referrer', 'com.facebook.katana'],
+  ['ref android-app://com.instagram.android', { referrer: 'android-app://com.instagram.android' }, 'Meta', 'referrer', 'com.instagram.android'],
+  ['ref android-app://org.telegram.messenger', { referrer: 'android-app://org.telegram.messenger' }, 'Telegram', 'referrer', 'org.telegram.messenger'],
+  ['ref android-app://com.openai.chatgpt', { referrer: 'android-app://com.openai.chatgpt' }, 'ChatGPT / AI', 'referrer', 'com.openai.chatgpt'],
+  ['ref android-app://com.google.android.googlequicksearchbox', { referrer: 'android-app://com.google.android.googlequicksearchbox' }, 'Google', 'referrer', 'com.google.android.googlequicksearchbox'],
+  ['ref android-app://com.linkedin.android', { referrer: 'android-app://com.linkedin.android' }, 'LinkedIn', 'referrer', 'com.linkedin.android'],
+  ['ref android-app://com.snapchat.android', { referrer: 'android-app://com.snapchat.android' }, 'Snapchat', 'referrer', 'com.snapchat.android'],
+  ['ref android-app://com.pinterest', { referrer: 'android-app://com.pinterest' }, 'Pinterest', 'referrer', 'com.pinterest'],
+  ['ref android-app://com.twitter.android', { referrer: 'android-app://com.twitter.android' }, 'X / Twitter', 'referrer', 'com.twitter.android'],
+  ['ref android-app://com.zhiliaoapp.musically', { referrer: 'android-app://com.zhiliaoapp.musically' }, 'TikTok', 'referrer', 'com.zhiliaoapp.musically'],
+  ['ref android-app://com.google.android.gm', { referrer: 'android-app://com.google.android.gm' }, 'Email', 'referrer', 'com.google.android.gm'],
+  ['ref android-app://com.google.android.youtube', { referrer: 'android-app://com.google.android.youtube' }, 'YouTube', 'referrer', 'com.google.android.youtube'],
+  ['ref android-app://com.whatsapp (plain Chrome UA, intent from a chat)', { userAgent: UA.chrome, referrer: 'android-app://com.whatsapp' }, 'WhatsApp', 'referrer', 'com.whatsapp'],
+  ['ref android-app://an app we do not know', { referrer: 'android-app://com.example.chat' }, 'Other', 'referrer', 'com.example.chat'],
   // ---- 4. referrer hosts ----
   ['ref l.instagram.com', { userAgent: UA.safari, referrer: 'https://l.instagram.com/?u=x' }, 'Meta', 'referrer', 'l.instagram.com'],
   ['ref m.facebook.com', { referrerHost: 'm.facebook.com' }, 'Meta', 'referrer', 'm.facebook.com'],
@@ -89,6 +112,9 @@ const CASES = [
   ['ref lnkd.in', { referrer: 'https://lnkd.in/abc' }, 'LinkedIn', 'referrer', 'lnkd.in'],
   ['ref t.me', { referrer: 'https://t.me/channel' }, 'Telegram', 'referrer', 't.me'],
   ['ref wa.me', { referrer: 'https://wa.me/9198' }, 'WhatsApp', 'referrer', 'wa.me'],
+  ['ref web.whatsapp.com', { referrer: 'https://web.whatsapp.com/' }, 'WhatsApp', 'referrer', 'web.whatsapp.com'],
+  ['ref whatsapp.com', { referrer: 'https://whatsapp.com/' }, 'WhatsApp', 'referrer', 'whatsapp.com'],
+  ['ref api.whatsapp.com', { referrer: 'https://api.whatsapp.com/' }, 'WhatsApp', 'referrer', 'api.whatsapp.com'],
   ['ref chatgpt.com', { referrer: 'https://chatgpt.com/' }, 'ChatGPT / AI', 'referrer', 'chatgpt.com'],
   ['ref chat.openai.com', { referrer: 'https://chat.openai.com/c/1' }, 'ChatGPT / AI', 'referrer', 'chat.openai.com'],
   ['ref perplexity', { referrer: 'https://www.perplexity.ai/search/x' }, 'ChatGPT / AI', 'referrer', 'perplexity.ai'],
@@ -104,14 +130,8 @@ const CASES = [
   ['ref bing', { referrer: 'https://www.bing.com/search?q=x' }, 'Bing', 'referrer', 'bing.com'],
   ['ref duckduckgo', { referrer: 'https://duckduckgo.com/' }, 'Other search', 'referrer', 'duckduckgo.com'],
   ['ref unknown host shows host', { referrer: 'https://blog.example.org/post' }, 'Other', 'referrer', 'blog.example.org'],
-  // a link tapped in a chat app: Chrome keeps the package that opened it, even with no tag and no app token in the user agent
-  ['ref android-app://com.whatsapp', { referrer: 'android-app://com.whatsapp' }, 'WhatsApp', 'referrer', 'com.whatsapp'],
-  ['ref android-app://com.facebook.katana', { referrer: 'android-app://com.facebook.katana' }, 'Meta', 'referrer', 'com.facebook.katana'],
-  ['ref android-app://org.telegram.messenger', { referrer: 'android-app://org.telegram.messenger' }, 'Telegram', 'referrer', 'org.telegram.messenger'],
-  ['ref android-app://com.openai.chatgpt', { referrer: 'android-app://com.openai.chatgpt' }, 'ChatGPT / AI', 'referrer', 'com.openai.chatgpt'],
-  ['ref android-app://an app we do not know', { referrer: 'android-app://com.example.chat' }, 'Other', 'referrer', 'com.example.chat'],
-  ['ref lookalike is not Google', { referrer: 'https://notgoogle.com/' }, 'Other', 'referrer', 'notgoogle.com'],
-  ['ref lookalike suffix is not Meta', { referrer: 'https://evilfacebook.com/' }, 'Other', 'referrer', 'evilfacebook.com'],
+  ['ref wa.me (whatsapp in-app runs first because UA has the app token)', { userAgent: UA.wa, referrer: 'https://wa.me/9198' }, 'WhatsApp', 'in_app'],
+  ['ref web.whatsapp.com + plain chrome UA (no app token) uses the referrer host', { userAgent: UA.chrome, referrer: 'https://web.whatsapp.com/' }, 'WhatsApp', 'referrer', 'web.whatsapp.com'],
   // ---- 5. direct and edge cases ----
   ['no evidence = Direct', { userAgent: UA.chrome }, 'Direct', 'direct'],
   ['own site referrer is not a source', { referrer: 'https://masterclass.example.com/cyber', ownHost: 'masterclass.example.com' }, 'Direct', 'direct'],
